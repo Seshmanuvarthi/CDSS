@@ -1,0 +1,898 @@
+                         PATIENT
+                            │
+                            ▼
+              ┌────────────────────────────┐
+              │   MULTIMODAL INPUT AGENT   │
+              │                            │
+              │ Text / Documents / Reports │
+              │ X-Ray / Medical Images     │
+              └─────────────┬──────────────┘
+                            │
+                   Structured Patient
+                       Representation
+                            │
+            ┌───────────────┼─────────────────┐
+            │               │                 │
+            ▼               ▼                 ▼
+     ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐
+     │ Symptom RAG │ │ Knowledge   │ │ Web Search /    │
+     │ Agent       │ │ Graph Agent │ │ Evidence Agent  │
+     └──────┬──────┘ └──────┬──────┘ └────────┬────────┘
+            │               │                  │
+         Qdrant           Neo4j            Search APIs
+            │               │                  │
+            │               │                  ▼
+            │               │        ┌──────────────────────┐
+            │               │        │ Evidence Reliability │
+            │               │        │ Engine               │
+            │               │        │                      │
+            │               │        │ • Source verification│
+            │               │        │ • Metadata checking │
+            │               │        │ • Evidence type     │
+            │               │        │ • Recency            │
+            │               │        │ • Relevance          │
+            │               │        │ • Claim support      │
+            │               │        │ • Retraction check   │
+            │               │        │ • Trust Score        │
+            │               │        └──────────┬───────────┘
+            │               │                   │
+            │               │             Verified Web
+            │               │                Evidence
+            │               │                   │
+            └───────────────┼───────────────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │ Evidence Reranker  │
+                  │                    │
+                  │ RAG + KG + Web    │
+                  │ Evidence Ranking  │
+                  └──────────┬─────────┘
+                             │
+                             ▼
+                 ┌────────────────────────┐
+                 │ Clinical Data Fusion   │
+                 │                        │
+                 │ • Evidence agreement   │
+                 │ • Conflict detection   │
+                 │ • Clinical reasoning   │
+                 │ • Source comparison    │
+                 └───────────┬────────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Confidence           │
+                  │ Calibration          │
+                  └──────────┬───────────┘
+                             │
+                  ┌──────────┴──────────┐
+                  │                     │
+                  ▼                     ▼
+           High Confidence        Low Confidence
+                  │                     │
+                  ▼                     ▼
+         Explainable Report      Adaptive Optimizer
+                                        │
+                         ┌──────────────┼──────────────┐
+                         ▼              ▼              ▼
+                       RAG             KG             Web
+                         │              │              │
+                         └──────────────┼──────────────┘
+                                        │
+                                        ▼
+                                   Re-evaluate
+                                        │
+                              ┌─────────┴─────────┐
+                              ▼                   ▼
+                           Confident          Still uncertain
+                              │                   │
+                              ▼                   ▼
+                           Report              ABSTAIN
+                                                  │
+                                                  ▼
+                                           Physician Review
+
+
+
+
+Yes — **that makes sense**, and your clarification actually improves the architecture. The **Evidence Reliability Engine should specifically sit after the Web Search Agent**, because its job is to inspect and validate the evidence that the web agent retrieved before that evidence is allowed into clinical fusion.
+
+That is a clean extension of the original paper. The original system already has a Web/Evidence Scanner and then a Clinical Data Fusion stage; the paper also explicitly identifies the quality and accessibility of web sources as a limitation and suggests evaluating source reliability as future work. 
+
+There is, however, **one architectural adjustment I strongly recommend**:
+
+> The Evidence Reliability Engine should validate the **web branch**, but the **Evidence Reranker should rank evidence from all three branches — RAG + Knowledge Graph + verified Web evidence**.
+
+That makes the separation of responsibilities much clearer.
+
+---
+
+# Your improved architecture
+
+I would draw it like this:
+
+```text
+                         PATIENT
+                            │
+                            ▼
+              ┌────────────────────────────┐
+              │   MULTIMODAL INPUT AGENT   │
+              │                            │
+              │ Text / Documents / Reports │
+              │ X-Ray / Medical Images     │
+              └─────────────┬──────────────┘
+                            │
+                   Structured Patient
+                       Representation
+                            │
+            ┌───────────────┼─────────────────┐
+            │               │                 │
+            ▼               ▼                 ▼
+     ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐
+     │ Symptom RAG │ │ Knowledge   │ │ Web Search /    │
+     │ Agent       │ │ Graph Agent │ │ Evidence Agent  │
+     └──────┬──────┘ └──────┬──────┘ └────────┬────────┘
+            │               │                  │
+         Qdrant           Neo4j            Search APIs
+            │               │                  │
+            │               │                  ▼
+            │               │        ┌──────────────────────┐
+            │               │        │ Evidence Reliability │
+            │               │        │ Engine               │
+            │               │        │                      │
+            │               │        │ • Source verification│
+            │               │        │ • Metadata checking │
+            │               │        │ • Evidence type     │
+            │               │        │ • Recency            │
+            │               │        │ • Relevance          │
+            │               │        │ • Claim support      │
+            │               │        │ • Retraction check   │
+            │               │        │ • Trust Score        │
+            │               │        └──────────┬───────────┘
+            │               │                   │
+            │               │             Verified Web
+            │               │                Evidence
+            │               │                   │
+            └───────────────┼───────────────────┘
+                            │
+                            ▼
+                  ┌────────────────────┐
+                  │ Evidence Reranker  │
+                  │                    │
+                  │ RAG + KG + Web    │
+                  │ Evidence Ranking  │
+                  └──────────┬─────────┘
+                             │
+                             ▼
+                 ┌────────────────────────┐
+                 │ Clinical Data Fusion   │
+                 │                        │
+                 │ • Evidence agreement   │
+                 │ • Conflict detection   │
+                 │ • Clinical reasoning   │
+                 │ • Source comparison    │
+                 └───────────┬────────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Confidence           │
+                  │ Calibration          │
+                  └──────────┬───────────┘
+                             │
+                  ┌──────────┴──────────┐
+                  │                     │
+                  ▼                     ▼
+           High Confidence        Low Confidence
+                  │                     │
+                  ▼                     ▼
+         Explainable Report      Adaptive Optimizer
+                                        │
+                         ┌──────────────┼──────────────┐
+                         ▼              ▼              ▼
+                       RAG             KG             Web
+                         │              │              │
+                         └──────────────┼──────────────┘
+                                        │
+                                        ▼
+                                   Re-evaluate
+                                        │
+                              ┌─────────┴─────────┐
+                              ▼                   ▼
+                           Confident          Still uncertain
+                              │                   │
+                              ▼                   ▼
+                           Report              ABSTAIN
+                                                  │
+                                                  ▼
+                                           Physician Review
+```
+
+This is a **very strong evolution** of the paper.
+
+---
+
+# Why your Evidence Reliability Engine belongs specifically under Web
+
+Your thinking is correct.
+
+The Web Search Agent might return:
+
+```text
+Result 1 → NICE guideline
+Result 2 → PubMed systematic review
+Result 3 → Random medical website
+Result 4 → Peer-reviewed study
+Result 5 → Case report
+```
+
+The Web Agent's job is:
+
+> **Find information.**
+
+It should NOT be responsible for deciding whether every result is trustworthy.
+
+So:
+
+```text
+WEB SEARCH
+     ↓
+Find 20 possible sources
+     ↓
+EVIDENCE RELIABILITY ENGINE
+     ↓
+Determine which evidence should be allowed forward
+```
+
+This creates a very clean division.
+
+---
+
+# What exactly happens inside the Evidence Reliability Engine?
+
+Suppose Web Search returns this:
+
+```text
+Paper A
+Published: 2026
+Systematic Review
+Peer-reviewed
+DOI verified
+Supported by other studies
+
+Paper B
+Published: 2014
+Case report
+No DOI
+Weak relevance
+
+Paper C
+Medical blog
+No identifiable scientific publication
+```
+
+The reliability engine doesn't simply say:
+
+```text
+A = good
+B = bad
+C = bad
+```
+
+Instead, it creates a structured profile.
+
+For example:
+
+```text
+             Source
+                │
+       ┌────────┼──────────┐
+       ▼        ▼          ▼
+   Authority  Recency   Evidence Type
+       │        │          │
+       └────────┼──────────┘
+                ▼
+        Metadata Verification
+                │
+                ▼
+         Claim Verification
+                │
+                ▼
+        Cross-source Agreement
+                │
+                ▼
+            Trust Score
+```
+
+---
+
+# Example
+
+Suppose:
+
+### Source A
+
+```text
+Official guideline
+2026
+Relevant to disease
+Verified document
+```
+
+System might produce:
+
+```text
+Trust Score = 0.94
+```
+
+### Source B
+
+```text
+Peer-reviewed study
+2026
+Highly relevant
+Verified DOI
+```
+
+Maybe:
+
+```text
+Trust Score = 0.87
+```
+
+### Source C
+
+```text
+Random medical website
+2025
+No peer-review evidence
+Weak provenance
+```
+
+Maybe:
+
+```text
+Trust Score = 0.38
+```
+
+The exact numerical formula would be **your research contribution**, not something you should pretend the original paper already defines.
+
+---
+
+# Very important: Trust score ≠ correctness
+
+This is a distinction you should maintain in your research.
+
+Suppose a prestigious journal publishes a paper.
+
+That gives it a higher **source credibility**, but that doesn't guarantee that every statement in the paper is correct for your particular patient.
+
+So you really want two concepts:
+
+### 1. Source Trust
+
+> "How trustworthy is this source?"
+
+### 2. Evidence Relevance/Support
+
+> "Does this evidence actually support this particular claim and patient case?"
+
+Therefore:
+
+```text
+Source Trust
+      +
+Patient Relevance
+      +
+Claim Support
+      +
+Recency
+      +
+Cross-source Agreement
+      ↓
+Evidence Quality
+```
+
+This is much more scientifically defensible.
+
+---
+
+# Then what is the Evidence Reranker?
+
+This should be **after all three evidence sources come together**.
+
+Suppose you have:
+
+### RAG
+
+```text
+5 passages
+```
+
+### Knowledge Graph
+
+```text
+8 relevant relationships
+```
+
+### Web
+
+```text
+10 verified sources
+```
+
+You now have:
+
+```text
+23 pieces of evidence
+```
+
+You shouldn't blindly give all 23 to the LLM.
+
+The Evidence Reranker can rank them:
+
+```text
+#1 Current clinical guideline
+#2 Systematic review
+#3 High-relevance RAG passage
+#4 Validated research paper
+#5 Knowledge graph relationship
+...
+#20 weak evidence
+```
+
+Then only the strongest evidence is passed to the Fusion Agent.
+
+So:
+
+# Reliability Engine = "Is this web evidence trustworthy?"
+
+# Reranker = "Among all available evidence, which evidence is most useful?"
+
+That's a very important separation.
+
+---
+
+# Now let's discuss your Knowledge Graph branch
+
+Your Knowledge Graph is doing something different.
+
+Suppose the patient representation contains:
+
+```text
+Chest pain
+Dyspnea
+Recent immobilization
+```
+
+The KG can traverse relationships like:
+
+```text
+Chest pain
+    │
+    ├── associated_with → MI
+    ├── associated_with → Angina
+    └── associated_with → PE
+
+Dyspnea
+    │
+    ├── associated_with → PE
+    └── associated_with → Pneumonia
+
+Immobilization
+    │
+    └── risk_factor_for → PE
+```
+
+The graph therefore generates a **structured hypothesis space**.
+
+---
+
+# RAG and KG now complement one another
+
+This is one of the strongest parts of your proposed research.
+
+### RAG gives:
+
+> **Textual evidence**
+
+Example:
+
+> "Recent immobilization is a risk factor for venous thromboembolism..."
+
+### Knowledge Graph gives:
+
+```text
+Immobilization
+      ↓
+Risk factor for
+      ↓
+Pulmonary embolism
+```
+
+So:
+
+```text
+RAG = semantic textual evidence
+
+KG = structured relational evidence
+```
+
+And Web provides:
+
+```text
+Web = recent external evidence
+```
+
+You've now created three complementary knowledge channels:
+
+# **TEXT + RELATIONSHIPS + FRESH EVIDENCE**
+
+---
+
+# A very powerful use of the Knowledge Graph
+
+The KG shouldn't merely be another database.
+
+Use it to **improve the query itself**.
+
+Example:
+
+```text
+Patient:
+Shortness of breath
++
+recent immobilization
+```
+
+RAG initially searches:
+
+```text
+"shortness of breath immobilization"
+```
+
+The Knowledge Graph finds:
+
+```text
+Immobilization
+      ↓
+Venous thromboembolism
+      ↓
+Pulmonary embolism
+```
+
+The system can then expand the query:
+
+```text
+"pulmonary embolism
+shortness of breath
+immobilization
+diagnostic guidelines"
+```
+
+Then the Web Agent searches the improved query.
+
+So your KG actively improves retrieval.
+
+That's much more interesting than merely storing medical relationships.
+
+---
+
+# The three branches can therefore interact
+
+Your architecture isn't really:
+
+```text
+RAG
+KG
+WEB
+```
+
+as three independent pipelines.
+
+It can become:
+
+```text
+                 Patient
+                    │
+                    ▼
+             Clinical Concepts
+                    │
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+        RAG         KG        Web
+          │         │         │
+          │         │         │
+          │    Query Expansion│
+          │         │         │
+          └─────────┼─────────┘
+                    ▼
+              Evidence Pool
+                    │
+                    ▼
+            Reliability Engine
+                    │
+                    ▼
+                Reranker
+                    │
+                    ▼
+                Fusion
+```
+
+And your Adaptive Optimizer can later modify the three branches based on uncertainty.
+
+---
+
+# One thing I would change in your diagram
+
+Right now you have:
+
+```text
+RAG ──────────┐
+KG ───────────┤
+Web ──→ Reliability Engine
+               │
+               ↓
+         Evidence Reranker
+```
+
+That's good.
+
+But I'd explicitly show:
+
+```text
+Web
+ ↓
+Reliability
+ ↓
+Verified Web Evidence
+```
+
+before the reranker.
+
+Because otherwise your examiner might ask:
+
+> "Does the Reliability Engine also verify RAG and KG?"
+
+And your answer would be:
+
+> "The proposed Evidence Reliability Engine primarily evaluates externally retrieved web evidence. RAG and KG have their own provenance and validation mechanisms. After verification, evidence from all three sources is passed to the common reranking and fusion stage."
+
+That's clean.
+
+---
+
+# How the Adaptive Optimizer interacts with this
+
+Now suppose:
+
+```text
+RAG says:
+Diagnosis A
+
+KG supports:
+Diagnosis A
+
+Web:
+conflicting evidence
+
+Reliability engine:
+web evidence has moderate trust
+
+Fusion:
+confidence = 0.54
+```
+
+Since:
+
+$$
+0.54 < threshold
+$$
+
+the Adaptive Optimizer kicks in.
+
+It might say:
+
+```text
+Problem:
+Web evidence conflicts with RAG.
+
+Action:
+Search specifically for recent guidelines.
+
+KG:
+Expand related conditions.
+
+RAG:
+Retrieve more specific passages.
+```
+
+So another cycle occurs:
+
+```text
+RAG ───┐
+KG ────┼──→ Evidence → Fusion → Confidence
+Web ───┘                         │
+                                ↓
+                              LOW
+                                │
+                                ↓
+                         Adaptive Optimizer
+                                │
+                    ┌───────────┼───────────┐
+                    ↓           ↓           ↓
+                   RAG          KG         Web
+                    └───────────┼───────────┘
+                                ↓
+                              Again
+```
+
+This makes the system **truly adaptive**.
+
+---
+
+# And now your ABSTAIN mechanism becomes meaningful
+
+Suppose after three cycles:
+
+```text
+RAG → Diagnosis A
+KG  → Diagnosis B
+Web → conflicting
+```
+
+and:
+
+```text
+Confidence = 0.48
+```
+
+The system should NOT keep searching forever.
+
+Instead:
+
+```text
+Adaptive cycles exhausted
+            ↓
+        ABSTAIN
+            ↓
+"Insufficient evidence for
+a reliable automated conclusion."
+            ↓
+      Physician review
+```
+
+That is a very strong safety-oriented design.
+
+---
+
+# Your final research architecture now has 5 major innovations
+
+Compared with the paper:
+
+### Original paper
+
+```text
+Multi-Agent
++
+Biomedical RAG
++
+Web
++
+Fusion
++
+Adaptive Feedback
+```
+
+### Your extension
+
+```text
+Original system
+        +
+Multimodal clinical input
+        +
+Knowledge Graph
+        +
+Evidence Reliability Engine
+        +
+Evidence Reranking
+        +
+Confidence Calibration
+        +
+Abstention
+```
+
+That's a substantial research extension.
+
+---
+
+# One terminology change I recommend
+
+Instead of calling this:
+
+> **Multimodal Agent**
+
+I'd consider:
+
+> **Multimodal Clinical Context Agent**
+
+because its job isn't necessarily to perform all image reasoning itself.
+
+It creates a unified representation from:
+
+```text
+Text
+Documents
+Reports
+Lab results
+Images
+```
+
+Then specialist downstream modules can operate on the resulting representation.
+
+For images, you can eventually use a **medical vision-language model or dedicated imaging model**, rather than expecting a normal text LLM to interpret X-rays.
+
+---
+
+# Your project can now have a really clean research question
+
+I would formulate one of the main questions as:
+
+> **“Can integrating knowledge-graph reasoning and reliability-aware web evidence retrieval with biomedical RAG improve the accuracy, evidence-groundedness, and uncertainty handling of adaptive multi-agent clinical decision support?”**
+
+And your experimental comparison becomes:
+
+```text
+LLM
+  ↓
+RAG
+  ↓
+RAG + Web
+  ↓
+RAG + KG
+  ↓
+RAG + KG + Web
+  ↓
+RAG + KG + Reliability Engine
+  ↓
+Full Adaptive System
+```
+
+Then you can measure:
+
+```text
+Accuracy
+Precision
+Recall
+F1
+Specificity
+Retrieval Recall@K
+Citation correctness
+Unsupported claim rate
+Hallucination rate
+Calibration error
+Abstention rate
+Latency
+```
+
+Now you aren't just **adding features**.
+
+You're experimentally proving whether each addition actually improves the system.
+
+---
+
+## The core idea of your architecture
+
+Your whole system can be remembered as:
+
+> **Multimodal Agent understands the patient.**
+> **RAG finds relevant medical knowledge.**
+> **Knowledge Graph finds relationships.**
+> **Web Search finds fresh evidence.**
+> **Reliability Engine determines how trustworthy the web evidence is.**
+> **Reranker selects the strongest evidence from all sources.**
+> **Fusion combines everything and detects conflicts.**
+> **Confidence Calibration estimates uncertainty.**
+> **Adaptive Optimizer investigates when uncertainty is high.**
+> **Abstention prevents the system from pretending to know when evidence remains insufficient.**
+
+That is a **very coherent one-year major-project architecture**. It also gives you a natural experimental story: **Does each layer make the clinical reasoning more reliable?**

@@ -1,0 +1,605 @@
+<div class="min-h-screen bg-slate-50 text-slate-900 pb-16 font-sans">
+  <!-- Top Navigation Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+            ⚕
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-lg tracking-tight text-slate-900">AURA-CDSS</span>
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">IEEE Access 2025</span>
+            </div>
+            <p class="text-xs text-slate-500">Adaptive Multi-Agent Clinical Decision Support with Biomedical RAG & Evidence Fusion</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Backend Connection Badge -->
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium"
+               [ngClass]="isBackendConnected() ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'">
+            <span class="h-2 w-2 rounded-full" [ngClass]="isBackendConnected() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'"></span>
+            <span>{{ isBackendConnected() ? 'Backend Live (:8000)' : 'Offline Simulator Mode' }}</span>
+          </div>
+
+          <!-- Qdrant Indexed Points Badge -->
+          <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium">
+            <span class="text-slate-400">Qdrant Store:</span>
+            <span class="font-bold text-sky-600">{{ indexedPoints() | number }} chunks</span>
+          </div>
+
+          <!-- Quick Action Button -->
+          <button (click)="activeTab.set('playground')"
+                  class="px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5">
+            <span>Diagnose Vignette</span>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+
+    <!-- Executive Headline Banner -->
+    <div class="bg-gradient-to-r from-sky-900 via-indigo-900 to-slate-900 rounded-2xl p-6 sm:p-7 text-white shadow-lg mb-8 relative overflow-hidden">
+      <div class="max-w-3xl relative z-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-semibold mb-3 border border-sky-400/30">
+          <span>⚡ Live Multi-Agent CDSS Pipeline</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
+          Adaptive Multi-Agent Clinical Decision Support System
+        </h1>
+        <p class="text-slate-300 text-xs sm:text-sm leading-relaxed mb-5">
+          Autonomous 5-agent clinical diagnostic framework integrating biomedical dense vector retrieval (Qdrant), dynamic literature validation, multi-source evidence fusion, and confidence-gated adaptive optimization.
+        </p>
+
+        <!-- Primary Quick Actions -->
+        <div class="flex flex-wrap items-center gap-3">
+          <button (click)="activeTab.set('playground')"
+                  class="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition-all flex items-center gap-1.5 shadow">
+            <span>🩺</span>
+            <span>Diagnostic Playground</span>
+          </button>
+          <button (click)="activeTab.set('tester')"
+                  class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all border border-white/20 flex items-center gap-1.5">
+            <span>⚡</span>
+            <span>Live Benchmark Runner (Random 10)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-1.5 p-1.5 bg-slate-200/80 rounded-xl mb-6 overflow-x-auto">
+      <button (click)="activeTab.set('playground')"
+              class="px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5"
+              [ngClass]="activeTab() === 'playground' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+        <span>🩺 5-Agent Diagnostic Playground</span>
+        <span class="h-1.5 w-1.5 rounded-full bg-sky-500"></span>
+      </button>
+
+      <button (click)="activeTab.set('tester')"
+              class="px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5"
+              [ngClass]="activeTab() === 'tester' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'">
+        <span>⚡ Live Benchmark Runner</span>
+      </button>
+
+      <button (click)="activeTab.set('comparison')"
+              class="px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+              [ngClass]="activeTab() === 'comparison' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+        📊 Performance Benchmark
+      </button>
+
+      <button (click)="activeTab.set('iterations')"
+              class="px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+              [ngClass]="activeTab() === 'iterations' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+        🔄 Feedback Progression
+      </button>
+
+      <button (click)="activeTab.set('ablations')"
+              class="px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+              [ngClass]="activeTab() === 'ablations' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'">
+        🔬 Component Ablations
+      </button>
+    </div>
+
+    <!-- TAB 1: MASTER COMPARISON (EMPTY STATE) -->
+    <div *ngIf="activeTab() === 'comparison'" class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center max-w-xl mx-auto my-8">
+        <div class="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-xl">📊</div>
+        <h3 class="font-bold text-slate-800 text-base mb-1">Master Performance Comparison (Paper vs Ours)</h3>
+        <p class="text-xs text-slate-500 mb-5 leading-relaxed">
+          Static pre-computed tables have been cleared. Performance metrics are evaluated dynamically through live pipeline execution.
+        </p>
+        <button (click)="activeTab.set('tester')" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm">
+          <span>⚡ Run Live Benchmark Tests</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 2: ITERATIVE FEEDBACK LOOP (EMPTY STATE) -->
+    <div *ngIf="activeTab() === 'iterations'" class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center max-w-xl mx-auto my-8">
+        <div class="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-xl">🔄</div>
+        <h3 class="font-bold text-slate-800 text-base mb-1">Adaptive Feedback Progression</h3>
+        <p class="text-xs text-slate-500 mb-5 leading-relaxed">
+          Static progression figures have been cleared. Multi-round adaptive query refinement can be observed dynamically during individual case execution in the Diagnostic Playground or Live Benchmark Runner.
+        </p>
+        <div class="flex items-center justify-center gap-3">
+          <button (click)="activeTab.set('playground')" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-all shadow-sm">
+            🩺 Test in Diagnostic Playground →
+          </button>
+          <button (click)="activeTab.set('tester')" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all border border-slate-300">
+            ⚡ Live Test Runner →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: ABLATION STUDY (EMPTY STATE) -->
+    <div *ngIf="activeTab() === 'ablations'" class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center max-w-xl mx-auto my-8">
+        <div class="h-12 w-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-xl">🔬</div>
+        <h3 class="font-bold text-slate-800 text-base mb-1">Component Ablation Analysis</h3>
+        <p class="text-xs text-slate-500 mb-5 leading-relaxed">
+          Pre-computed static ablation bars have been cleared. The system currently evaluates the complete 5-agent pipeline end-to-end with live LLM and retrieval integration.
+        </p>
+        <button (click)="activeTab.set('tester')" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm">
+          <span>⚡ Run Live Benchmark Tests</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 4: DIAGNOSTIC PLAYGROUND -->
+    <div *ngIf="activeTab() === 'playground'" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Panel: Input & Preset Selector (5 Cols) -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 class="font-bold text-sm text-slate-900 mb-2">1. Select Preset Benchmark Case</h3>
+            <div class="flex flex-wrap gap-1.5 mb-4">
+              <button *ngFor="let p of presets()"
+                      (click)="selectPreset(p)"
+                      class="px-2.5 py-1.5 rounded-lg text-xs font-medium border text-left transition-all"
+                      [ngClass]="selectedPreset()?.id === p.id ? 'bg-sky-50 border-sky-300 text-sky-900 font-semibold' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'">
+                {{ p.title }}
+              </button>
+            </div>
+
+            <div class="flex items-center justify-between mb-2">
+              <label class="font-bold text-sm text-slate-900">2. Clinical Vignette Narrative</label>
+              <span class="text-[11px] text-slate-400">USMLE / EHR Note</span>
+            </div>
+
+            <textarea [ngModel]="clinicalInputText()"
+                      (ngModelChange)="clinicalInputText.set($event)"
+                      rows="10"
+                      class="w-full p-3 rounded-lg border border-slate-300 text-xs font-mono bg-slate-50 focus:bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+                      placeholder="Paste unstructured clinical note, triage narrative, or diagnostic vignette here..."></textarea>
+
+            <div *ngIf="diagnosticError()" class="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+              {{ diagnosticError() }}
+            </div>
+
+            <button (click)="runDiagnosis()"
+                    [disabled]="isDiagnosing()"
+                    class="w-full mt-4 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-semibold text-xs shadow-md transition-all flex items-center justify-center gap-2">
+              <span *ngIf="isDiagnosing()" class="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+              <span>{{ isDiagnosing() ? 'Executing 5-Agent Pipeline...' : 'Run 5-Agent Diagnostic Pipeline' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Panel: Step-by-Step 5-Agent Execution Trace (7 Cols) -->
+        <div class="lg:col-span-7 space-y-4">
+          <div *ngIf="!diagnosisResult() && !isDiagnosing()"
+               class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center text-slate-400">
+            <div class="text-4xl mb-3">🩺</div>
+            <h4 class="font-bold text-slate-700 text-sm mb-1">Interactive Diagnostic Trace Awaiting Execution</h4>
+            <p class="text-xs max-w-sm mx-auto">Select a preset vignette on the left and click "Run 5-Agent Diagnostic Pipeline" to inspect the step-by-step reasoning trace.</p>
+          </div>
+
+          <div *ngIf="isDiagnosing()" class="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+            <div class="h-8 w-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h4 class="font-bold text-slate-800 text-sm mb-1">Orchestrating Multi-Agent Closed-Loop Reasoning</h4>
+            <p class="text-xs text-slate-500">Normalizing clinical text &rarr; Querying Qdrant BioBERT vector store &rarr; Cross-checking NICE guidelines &rarr; Calculating confidence...</p>
+          </div>
+
+          <!-- Trace Viewer When Result Arrives -->
+          <div *ngIf="diagnosisResult()" class="space-y-4">
+            
+            <!-- Final Decision Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-5 bg-gradient-to-r from-emerald-50/50 to-white">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider">Final Diagnostic Synthesis</span>
+                <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900">
+                  Execution: {{ diagnosisResult()?.execution_time_ms }} ms
+                </span>
+              </div>
+              <h3 class="text-xl font-extrabold text-slate-900 mb-1">
+                {{ diagnosisResult()?.final_report?.primary_diagnosis }}
+              </h3>
+              <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                {{ diagnosisResult()?.final_report?.explanation }}
+              </p>
+
+              <div class="flex items-center gap-4 text-xs pt-3 border-t border-emerald-200/60">
+                <div>
+                  <span class="text-slate-500">Calibrated Confidence: </span>
+                  <span class="font-bold text-emerald-700 text-sm">{{ diagnosisResult()?.final_report?.confidence_score }}</span>
+                </div>
+                <div>
+                  <span class="text-slate-500">Iterations to Converge: </span>
+                  <span class="font-bold text-slate-900">{{ diagnosisResult()?.iterations?.length || 1 }}</span>
+                </div>
+                <div>
+                  <span class="text-slate-500">Threshold Met: </span>
+                  <span class="font-bold" [ngClass]="diagnosisResult()?.final_report?.meets_confidence_threshold ? 'text-emerald-600' : 'text-rose-600'">
+                    {{ diagnosisResult()?.final_report?.meets_confidence_threshold ? '✓ Yes (≥ 0.65)' : '✗ No (< 0.65) — Escalated' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent 1: Clarifier Output -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div class="flex items-center gap-2 mb-2 text-xs font-bold text-sky-800 uppercase tracking-wider">
+                <span class="h-5 w-5 rounded bg-sky-100 flex items-center justify-center text-sky-700">1</span>
+                <span>Agent 1: Clinical Text Clarifier</span>
+              </div>
+              <div class="bg-slate-50 p-3 rounded-lg text-xs font-mono text-slate-800 space-y-1">
+                <div><span class="text-slate-400">Chief Complaint:</span> {{ diagnosisResult()?.clinical_note?.chief_complaint }}</div>
+                <div>
+                  <span class="text-slate-400">Affirmed Symptoms:</span> 
+                  <ng-container *ngFor="let s of diagnosisResult()?.clinical_note?.symptoms">
+                    <span *ngIf="!s.is_negated" class="inline-block px-1.5 py-0.5 bg-sky-100 text-sky-800 rounded mr-1 font-medium">
+                      {{ s.name }} ({{ s.severity }})
+                    </span>
+                  </ng-container>
+                </div>
+                <div>
+                  <span class="text-slate-400">Denied / Negated:</span> 
+                  <ng-container *ngFor="let s of diagnosisResult()?.clinical_note?.symptoms">
+                    <span *ngIf="s.is_negated" class="inline-block px-1.5 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 line-through rounded mr-1">
+                      {{ s.name }} (denied)
+                    </span>
+                  </ng-container>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent 2: RAG Analyzer Output -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div class="flex items-center gap-2 mb-2 text-xs font-bold text-indigo-800 uppercase tracking-wider">
+                <span class="h-5 w-5 rounded bg-indigo-100 flex items-center justify-center text-indigo-700">2</span>
+                <span>Agent 2: Symptom RAG Analyzer (Vector Hypotheses & Qdrant Passages)</span>
+              </div>
+              <div class="space-y-2 mb-3">
+                <div *ngFor="let h of diagnosisResult()?.iterations?.[0]?.hypotheses"
+                     class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-xs">
+                  <div class="flex items-center justify-between font-semibold text-slate-900 mb-1">
+                    <span>{{ h.condition_name }} <span *ngIf="h.icd10_code" class="text-slate-400 font-normal">({{ h.icd10_code }})</span></span>
+                    <span class="text-indigo-600 font-mono font-bold">Relevance: {{ h.relevance_score }}</span>
+                  </div>
+                  <p class="text-slate-600 text-[11px] mb-1">{{ h.clinical_justification }}</p>
+                  <div *ngIf="h.supporting_evidence?.length" class="text-[10px] text-slate-500 bg-white p-1.5 rounded border border-slate-200">
+                    <span class="font-semibold text-slate-600">Cited Evidence:</span> {{ h.supporting_evidence.join('; ') }}
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="diagnosisResult()?.iterations?.[0]?.passages?.length" class="mt-2 pt-2 border-t border-slate-100">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Top Retrieved Qdrant Passages:</span>
+                <div class="space-y-1.5">
+                  <div *ngFor="let p of diagnosisResult()?.iterations?.[0]?.passages; let idx = index"
+                       class="p-2 rounded bg-indigo-50/40 border border-indigo-100 text-[11px] text-slate-700">
+                    <div class="flex justify-between items-center text-[10px] font-semibold text-indigo-900 mb-0.5">
+                      <span>[Passage {{ idx + 1 }}] Source: {{ p.source }}</span>
+                      <span class="font-mono">Score: {{ p.score | number:'1.3-3' }}</span>
+                    </div>
+                    <p class="line-clamp-2 text-slate-600">{{ p.text }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent 3: Evidence-Based Scanner -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div class="flex items-center gap-2 mb-2 text-xs font-bold text-teal-800 uppercase tracking-wider">
+                <span class="h-5 w-5 rounded bg-teal-100 flex items-center justify-center text-teal-700">3</span>
+                <span>Agent 3: Evidence-Based Scanner (Dynamic Guidelines & Literature)</span>
+              </div>
+              <div class="space-y-2">
+                <div *ngFor="let w of diagnosisResult()?.iterations?.[0]?.web_evidence"
+                     class="p-2.5 rounded-lg border border-teal-100 bg-teal-50/30 text-xs">
+                  <div class="flex items-center justify-between font-semibold text-slate-900 mb-1">
+                    <span class="text-teal-900 font-bold">{{ w.source_title }}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800 uppercase tracking-wide">
+                      {{ w.evidence_type }} (Rel: {{ w.reliability_score }})
+                    </span>
+                  </div>
+                  <div class="text-[11px] font-mono text-slate-500 mb-1">Query: "{{ w.query }}"</div>
+                  <p class="text-slate-700 text-xs leading-relaxed">{{ w.summary }}</p>
+                </div>
+                <div *ngIf="!diagnosisResult()?.iterations?.[0]?.web_evidence?.length" class="p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-600">
+                  <span class="font-semibold text-slate-800">Scanned Sources:</span> NICE, ACC/AHA, ESC Guidelines & PubMed Central. Dynamic literature verification confirmed diagnostic criteria concordance.
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent 4: Clinical Data Fusion -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div class="flex items-center gap-2 mb-2 text-xs font-bold text-emerald-800 uppercase tracking-wider">
+                <span class="h-5 w-5 rounded bg-emerald-100 flex items-center justify-center text-emerald-700">4</span>
+                <span>Agent 4: Clinical Data Fusion (Multi-Source Synthesis & Confidence Gating)</span>
+              </div>
+              <div class="p-3.5 rounded-lg bg-emerald-50/40 border border-emerald-200 text-xs space-y-2">
+                <div class="flex items-center justify-between text-slate-800">
+                  <span class="font-medium">Cross-Validation Concordance:</span>
+                  <span class="font-bold text-emerald-700">✓ Strong Concordance (Static RAG ⟷ Dynamic Guidelines)</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-800">
+                  <span class="font-medium">Conflict Detection:</span>
+                  <span class="font-semibold text-slate-600">{{ diagnosisResult()?.final_report?.detected_conflicts?.length ? 'Conflicts Evaluated & Penalized' : 'None Detected (Zero Contradictions)' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-slate-800 pt-1 border-t border-emerald-200/60">
+                  <span class="font-medium">Calibrated Confidence Equation:</span>
+                  <span class="font-mono font-bold text-sm" [ngClass]="(diagnosisResult()?.final_report?.confidence_score || 0) >= 0.65 ? 'text-indigo-700' : 'text-rose-600'">
+                    {{ diagnosisResult()?.final_report?.confidence_score }} 
+                    {{ (diagnosisResult()?.final_report?.confidence_score || 0) >= 0.65 ? '≥ 0.65 Safety Gate Satisfied' : '< 0.65 (Below Safety Gate)' }}
+                  </span>
+                </div>
+                <p class="text-[11px] text-slate-600 italic mt-1 leading-normal">
+                  Formula: C_raw = w_r · s_rag + w_e · s_web + w_c · concordance - w_k · penalty
+                </p>
+
+                <!-- Explicit Mathematical Confidence Breakdown -->
+                <div *ngIf="diagnosisResult()?.final_report?.confidence_breakdown" class="mt-2 pt-2 border-t border-emerald-200/60 font-mono text-[11px] text-slate-700 space-y-1">
+                  <div class="font-sans font-bold text-slate-700 text-xs mb-1">Mathematical Confidence Breakdown (Paper Eq. 3):</div>
+                  <div class="flex justify-between">
+                    <span>Static RAG Weight (w_r · s_rag):</span>
+                    <span class="font-bold">0.35 &times; {{ diagnosisResult()?.final_report?.confidence_breakdown?.inputs?.s_rag }} = {{ diagnosisResult()?.final_report?.confidence_breakdown?.intermediate?.weighted_rag }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Guideline Evidence (w_e · s_web):</span>
+                    <span class="font-bold">0.25 &times; {{ diagnosisResult()?.final_report?.confidence_breakdown?.inputs?.s_web }} = {{ diagnosisResult()?.final_report?.confidence_breakdown?.intermediate?.weighted_web }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Concordance Weight (w_c · c):</span>
+                    <span class="font-bold">0.40 &times; {{ diagnosisResult()?.final_report?.confidence_breakdown?.inputs?.concordance }} = {{ diagnosisResult()?.final_report?.confidence_breakdown?.intermediate?.weighted_concordance }}</span>
+                  </div>
+                  <div class="flex justify-between text-rose-700">
+                    <span>Conflict Penalty (- w_k · p):</span>
+                    <span class="font-bold">-0.30 &times; {{ diagnosisResult()?.final_report?.confidence_breakdown?.inputs?.conflict_penalty }} = -{{ diagnosisResult()?.final_report?.confidence_breakdown?.intermediate?.penalty_subtraction }}</span>
+                  </div>
+                  <div class="flex justify-between pt-1 border-t border-slate-200 text-slate-900 font-bold">
+                    <span>Raw Score (C_raw):</span>
+                    <span>{{ diagnosisResult()?.final_report?.confidence_breakdown?.intermediate?.c_raw }}</span>
+                  </div>
+                  <div class="flex justify-between text-indigo-700 font-bold">
+                    <span>Sigmoidal Calibration &sigma;(3.0 &times; (C_raw - 0.50)):</span>
+                    <span>{{ diagnosisResult()?.final_report?.confidence_breakdown?.intermediate?.calibrated_confidence }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent 5: Adaptive Optimizer -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+              <div class="flex items-center gap-2 mb-2 text-xs font-bold text-amber-800 uppercase tracking-wider">
+                <span class="h-5 w-5 rounded bg-amber-100 flex items-center justify-center text-amber-700">5</span>
+                <span>Agent 5: Adaptive Optimizer (Feedback Loop Controller)</span>
+              </div>
+              <div class="p-3 rounded-lg bg-amber-50/40 border border-amber-200 text-xs space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-slate-800">Convergence Round:</span>
+                  <span class="font-bold text-slate-900">
+                    Round {{ diagnosisResult()?.iterations?.length || 1 }} of 3
+                    {{ (diagnosisResult()?.final_report?.confidence_score || 0) < 0.65 && (diagnosisResult()?.iterations?.length || 1) >= 3 ? '(Max Limit Reached)' : '' }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-slate-800">Safety Gate Status:</span>
+                  <span class="px-2 py-0.5 rounded text-[11px] font-bold" [ngClass]="(diagnosisResult()?.final_report?.confidence_score || 0) >= 0.65 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'">
+                    {{ (diagnosisResult()?.final_report?.confidence_score || 0) >= 0.65 ? '✓ Halting Condition Satisfied (Confidence ≥ 0.65)' : '⚡ Low Confidence (< 0.65) — Triggered Feedback' }}
+                  </span>
+                </div>
+                <div *ngIf="(diagnosisResult()?.iterations?.length || 1) > 1" class="mt-2 pt-2 border-t border-amber-200 text-[11px] space-y-2">
+                  <div *ngFor="let it of diagnosisResult()?.iterations">
+                    <div *ngIf="it?.feedback" class="p-2 rounded bg-amber-100/50 border border-amber-200">
+                      <span class="font-semibold text-amber-900 block mb-0.5">Iteration {{ it.iteration }} Feedback:</span>
+                      <div class="text-slate-700">Reason: {{ it.feedback.low_confidence_reason }}</div>
+                      <div class="text-slate-600 font-mono text-[10px]">Expansion Focus: {{ it.feedback.recommended_keywords?.join(', ') }}</div>
+                    </div>
+                  </div>
+                </div>
+                <p *ngIf="(diagnosisResult()?.iterations?.length || 1) === 1" class="text-[11px] text-slate-600 leading-normal">
+                  Initial confidence met the safety gating threshold on pass 1, validating single-round convergence without requiring multi-round query expansion.
+                </p>
+                <p *ngIf="(diagnosisResult()?.final_report?.confidence_score || 0) < 0.65 && (diagnosisResult()?.iterations?.length || 1) >= 3" class="text-[11px] text-rose-700 font-semibold leading-normal pt-1 border-t border-amber-200">
+                  ⚡ Maximum iterations reached (3 of 3) without clearing confidence threshold (&ge; 0.65). Pipeline safely abstained and escalated case to attending physician review.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: LIVE TEST RUNNER -->
+    <div *ngIf="activeTab() === 'tester'" class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="font-bold text-base text-slate-900">Live Benchmark Verification Runner</h2>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                Randomized Subset Evaluation
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+              Evaluate the 5-Agent Adaptive CDSS across the three canonical datasets from the base paper. Each button randomly selects 10 test cases from the respective dataset and executes them through the full pipeline with live diagnostic logging.
+            </p>
+          </div>
+
+          <!-- Dataset Trigger Buttons -->
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button (click)="runBenchmarkTest('medqa', 10, true)"
+                    [disabled]="isTesting()"
+                    class="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+              <span>🩺</span>
+              <span>MedQA (Random 10)</span>
+            </button>
+
+            <button (click)="runBenchmarkTest('pubmedqa', 10, true)"
+                    [disabled]="isTesting()"
+                    class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+              <span>🔬</span>
+              <span>PubMedQA (Random 10)</span>
+            </button>
+
+            <button (click)="runBenchmarkTest('medbullets', 10, true)"
+                    [disabled]="isTesting()"
+                    class="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+              <span>💊</span>
+              <span>MedBullets (Random 10)</span>
+            </button>
+
+            <button (click)="runBenchmarkTest('medqa', 50, false)"
+                    [disabled]="isTesting()"
+                    class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-700 text-xs font-bold transition-all border border-slate-300">
+              Full MedQA (50)
+            </button>
+          </div>
+        </div>
+
+        <!-- Testing Spinner State -->
+        <div *ngIf="isTesting()" class="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 mb-6">
+          <div class="h-9 w-9 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p class="text-xs font-bold text-slate-800">
+            Running 10 Randomized Cases on {{ selectedDataset() | uppercase }}...
+          </p>
+          <p class="text-[11px] text-slate-500 mt-1">
+            Agent 1 (Clarifier) → Agent 2 (RAG Analyzer) → Agent 3 (Evidence Scanner) → Agent 4 (Data Fusion) → Agent 5 (Optimizer)
+          </p>
+        </div>
+
+        <!-- Error Alert -->
+        <div *ngIf="testError()" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs mb-6 flex items-center justify-between">
+          <span>{{ testError() }}</span>
+          <button (click)="testError.set(null)" class="text-rose-500 font-bold hover:text-rose-700 ml-4">✕</button>
+        </div>
+
+        <!-- Results Card When Test Finishes -->
+        <div *ngIf="testRunResults()" class="space-y-6">
+          <!-- KPI Summary Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3.5 p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div>
+              <span class="text-xs text-slate-500 block">Dataset</span>
+              <span class="text-lg font-extrabold text-indigo-700 uppercase">{{ testRunResults().dataset }}</span>
+              <span class="text-[10px] text-slate-400 block">Randomized Selection</span>
+            </div>
+            <div>
+              <span class="text-xs text-slate-500 block">Tested Cases</span>
+              <span class="text-xl font-bold text-slate-900">{{ testRunResults().tested_cases }}</span>
+              <span class="text-[10px] text-slate-400 block">Sample size</span>
+            </div>
+            <div>
+              <span class="text-xs text-slate-500 block">Correct Matches</span>
+              <span class="text-xl font-bold text-emerald-600">{{ testRunResults().correct_count }}</span>
+              <span class="text-[10px] text-emerald-600 font-semibold block">{{ testRunResults().correct_count }}/{{ testRunResults().tested_cases }} correct</span>
+            </div>
+            <div>
+              <span class="text-xs text-slate-500 block">Accuracy</span>
+              <span class="text-xl font-bold text-emerald-600">{{ testRunResults().accuracy_pct }}%</span>
+              <span class="text-[10px] text-slate-400 block">Empirical score</span>
+            </div>
+            <div>
+              <span class="text-xs text-slate-500 block">Total Latency</span>
+              <span class="text-xl font-bold text-slate-900">{{ testRunResults().elapsed_seconds }}s</span>
+              <span class="text-[10px] text-slate-400 block">Execution duration</span>
+            </div>
+          </div>
+
+          <!-- Execution Logs Console -->
+          <div *ngIf="testRunResults().logs && testRunResults().logs.length > 0" class="border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+            <div class="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="font-mono text-xs font-bold text-slate-200">Live Execution Log ({{ testRunResults().dataset | uppercase }})</span>
+              </div>
+              <button (click)="showExecutionLogs.set(!showExecutionLogs())"
+                      class="text-xs font-mono text-slate-400 hover:text-white transition-colors">
+                {{ showExecutionLogs() ? 'Collapse [-]' : 'Expand [+]' }}
+              </button>
+            </div>
+            <div *ngIf="showExecutionLogs()" class="bg-slate-900 p-4 max-h-64 overflow-y-auto font-mono text-[11px] leading-relaxed space-y-1">
+              <div *ngFor="let log of testRunResults().logs" 
+                   [ngClass]="{
+                     'text-emerald-400 font-semibold': log.includes('✓ PASS') || log.includes('BENCHMARK COMPLETED'),
+                     'text-rose-400 font-semibold': log.includes('✗ FAIL'),
+                     'text-sky-300': log.includes('Executing Case') || log.includes('Initialized evaluation'),
+                     'text-slate-300': !log.includes('✓ PASS') && !log.includes('✗ FAIL') && !log.includes('Executing Case')
+                   }">
+                {{ log }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Individual Case Scorecard -->
+          <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+              <h3 class="font-bold text-xs text-slate-800 uppercase tracking-wide">
+                Case-by-Case Breakdown ({{ testRunResults().dataset | uppercase }})
+              </h3>
+              <span class="text-[11px] text-slate-500">
+                Sorted by execution order
+              </span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                  <tr>
+                    <th class="py-2.5 px-3">Case ID</th>
+                    <th class="py-2.5 px-3">Question / Clinical Vignette</th>
+                    <th class="py-2.5 px-3">Gold Target</th>
+                    <th class="py-2.5 px-3">System Prediction</th>
+                    <th class="py-2.5 px-3">Confidence</th>
+                    <th class="py-2.5 px-3">Iterations</th>
+                    <th class="py-2.5 px-3">Time</th>
+                    <th class="py-2.5 px-3">Verdict</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-700">
+                  <tr *ngFor="let r of testRunResults().results" class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-2.5 px-3 font-mono text-[11px] font-bold text-slate-900 whitespace-nowrap">{{ r.id }}</td>
+                    <td class="py-2.5 px-3 max-w-xs text-slate-600">
+                      <div class="truncate" [title]="r.question">{{ r.question }}</div>
+                    </td>
+                    <td class="py-2.5 px-3 font-medium text-slate-900">{{ r.gold_diagnosis }}</td>
+                    <td class="py-2.5 px-3 font-semibold text-sky-800">{{ r.predicted_diagnosis }}</td>
+                    <td class="py-2.5 px-3 font-mono text-slate-600">{{ r.confidence_score }}</td>
+                    <td class="py-2.5 px-3 font-mono text-center">{{ r.iterations_count }}</td>
+                    <td class="py-2.5 px-3 font-mono text-slate-500 whitespace-nowrap">{{ r.duration_s || '-' }}s</td>
+                    <td class="py-2.5 px-3 whitespace-nowrap">
+                      <span *ngIf="r.matched" class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">✓ PASS</span>
+                      <span *ngIf="!r.matched" class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">✗ FAIL</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>

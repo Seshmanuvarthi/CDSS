@@ -1,0 +1,39 @@
+# Virtual Environment
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/.angular/
+
+# Environment Secrets
+.env
+*.env
+*.env.local
+*.env.*.local
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Artifacts & Local Vector Storage
+artifacts/qdrant/
+data/raw/
+qdrant_storage/
+
+# LaTeX build outputs
+paper/*.aux
+paper/*.log
+paper/*.out
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+

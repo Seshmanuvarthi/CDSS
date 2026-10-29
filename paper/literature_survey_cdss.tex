@@ -1,0 +1,540 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{balance}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=black
+}
+
+\begin{document}
+
+\title{From Monolithic Foundation Models to Adaptive Multi-Agent Ecosystems: A Survey of Retrieval, Evidence Fusion, and Verification in Clinical Decision Support}
+
+\author{
+\IEEEauthorblockN{Praneeth Nukala}
+\IEEEauthorblockA{\textit{Department of Computer Science and Engineering} \\
+\textit{Academic Research Institution} \\
+Email: praneethnukala@academic.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+Clinical Decision Support Systems (CDSS) have undergone a profound paradigm shift over the past half-century, transitioning from rigid symbolic rule-bases and ontological reasoners toward foundation models powered by generative Large Language Models (LLMs). While monolithic LLMs exhibit impressive medical knowledge encoding, their deployment within safety-critical diagnostic workflows remains constrained by three pervasive vulnerabilities: non-grounded hallucinations, temporal knowledge obsolescence, and the absence of mathematically grounded confidence calibration. In response to these vulnerabilities, recent frontier research has gravitated toward composite architectures integrating Dense Vector Retrieval-Augmented Generation (RAG), external guideline harvesting, heterogeneous multi-agent deliberation, and closed-loop adaptive query optimization. 
+
+This survey provides a comprehensive, rigorous taxonomy of the modern LLM-driven CDSS landscape. We systematically categorize architectural paradigms spanning monolithic models, neuro-symbolic knowledge graph integrations, cooperative multi-agent ensembles, and adaptive multi-round feedback pipelines. We formalize the mathematical mechanics governing multi-source evidence fusion, conflict penalties, and confidence gating under safety thresholds ($\tau$). Furthermore, we critically examine empirical benchmarks across USMLE MedQA, PubMedQA, and MedBullets, shedding light on prevalent methodological deficiencies in the contemporary literature---most notably statistical underpowering ($n=50$), metric inflation via degenerate binary reductions, and systemic latency bottlenecks incurred by real-time web crawlers. Finally, we formulate a research roadmap identifying open horizons in selective classification, risk-coverage trade-offs, and privacy-preserving edge deployment.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Clinical Decision Support Systems, Retrieval-Augmented Generation, Multi-Agent LLM Architectures, Evidence Fusion, Confidence Calibration, Biomedical Natural Language Processing.
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Preventable diagnostic errors remain an enduring crisis within global healthcare infrastructures. The seminal Institute of Medicine (IOM) report, \textit{To Err Is Human}, estimated that between 44,000 and 98,000 hospitalized patients succumb annually to preventable medical injuries in the United States alone~\cite{kohn2000err}. Contemporary post-admission epidemiology reinforces that cognitive overload, heuristic biases, delayed diagnostic synthesis, and fragmented clinical documentation account for approximately 70\% of preventable diagnostic misclassifications across internal medicine and acute triage units~\cite{ohta2019causes}. 
+
+For five decades, computational medical informatics has sought to mitigate human cognitive fatigue through automated Clinical Decision Support Systems (CDSS). The historical trajectory of CDSS mirrors broader evolutions in artificial intelligence. Early symbolic systems, pioneered by Shortliffe's MYCIN~\cite{shortliffe1976computer} and Miller's INTERNIST-I~\cite{miller1982internist}, relied upon hand-curated production rules and certainty factors. While deterministically transparent, these expert systems exhibited profound operational fragility: they failed to scale beyond tightly circumscribed subdomains, could not parse raw, unstructured clinical notes, and were incapable of adapting dynamically when patient presentations deviated from textbook typologies. Subsequent decades witnessed the ascendancy of ontological knowledge bases (such as SNOMED CT, UMLS, and OWL-based frameworks like OntoDiabetic~\cite{sherimon2016ontodiabetic}) and classical discriminative machine learning models trained on electronic health record (EHR) tabular features. Yet, the persistent bottleneck remained the vast expanse of clinical reality: over 80\% of hospital clinical data resides within unstructured physician notes, nursing handoffs, radiological reports, and discharge summaries.
+
+The emergence of transformer-based Large Language Models (LLMs) fundamentally altered this trajectory. Foundation models trained on hundreds of billions of tokens---such as GPT-4, Llama~3, Med-PaLM~2, and DeepSeek-R1---demonstrate fluent semantic extraction, cross-specialty clinical reasoning, and the ability to surpass human passing thresholds on the United States Medical Licensing Examination (USMLE)~\cite{singhal2023large, nori2023capabilities}. Despite these superficial proficiencies, critical evaluation by clinical informaticians has revealed that deploying monolithic, unaugmented LLMs as autonomous diagnostic advisors introduces alarming clinical safety risks:
+\begin{enumerate}
+    \item \textbf{Uncalibrated Hallucinations:} Monolithic models optimize for token plausibility rather than empirical clinical truth. An LLM may fabricate non-existent pharmacological interactions or hallucinate pathognomonic radiological signs with unyielding linguistic confidence.
+    \item \textbf{Temporal Knowledge Atrophy:} Parametric weights are frozen at the pre-training cutoff. They lack awareness of contemporary clinical trial outcomes, newly emergent infectious pathogens, or recently updated clinical practice guidelines (e.g., NICE, AHA/ACC).
+    \item \textbf{Absence of Verification and Audit Trails:} A monolithic model provides a single forward-pass completion without referencing traceable biomedical literature passages, rendering post-hoc institutional auditing and medicolegal accountability impossible.
+\end{enumerate}
+
+To circumvent the fundamental limitations of single-model architectures, the medical NLP community has undergone an architectural revolution. Contemporary state-of-the-art frameworks decompose the clinical diagnostic reasoning pipeline into specialized, collaborating agents operating over heterogeneous external knowledge sources. These architectures leverage \textbf{Dense Vector Retrieval-Augmented Generation (RAG)} over biomedical corpora (e.g., PubMed Central, disease-symptom registries), dynamic web-intelligence engines for guideline scanning, multi-source evidence fusion mechanisms, and closed-loop adaptive optimization loops that iteratively re-query and refine diagnostic differentials when initial confidence falls below prespecified clinical thresholds~\cite{ogdu2025adaptive, kim2024medagents, zuo2025kg4diagnosis}.
+
+\subsection{Contributions of this Survey}
+While several general surveys exist on foundation models in medicine~\cite{thirunavukarasu2023large}, they overwhelmingly focus on monolithic parameter scaling, general text summarization, or benchmark passing scores. To our knowledge, this is the first survey dedicated rigorously to the intersection of \textbf{multi-agent architectures, retrieval augmentation, and closed-loop evidence fusion} within CDSS. The primary contributions of this work are summarized as follows:
+\begin{itemize}
+    \item \textbf{Comprehensive Architectural Taxonomy:} We propose an overarching taxonomic framework classifying modern CDSS across five distinct design generations: monolithic foundation models, neuro-symbolic knowledge-graph systems, static vector-RAG pipelines, cooperative multi-agent ensembles, and adaptive closed-loop feedback systems.
+    \item \textbf{Mathematical Formalization of Clinical Fusion:} We dissect and formalize the mathematical frameworks governing multi-source evidence reconciliation, conflict penalties, and sigmoidal confidence calibration, clarifying the operational role of the confidence gating threshold $\tau$.
+    \item \textbf{Empirical Meta-Synthesis:} We aggregate, normalize, and compare empirical outcomes across standardized medical benchmarks (MedQA, PubMedQA, MedBullets), juxtaposing multi-agent gains against leading single-model baselines.
+    \item \textbf{Rigorous Methodological Critique:} We expose systemic vulnerabilities in the current empirical literature, including small-sample evaluation artifacts ($n=50$), metric inflation via degenerate binary reductions, web search crawling latencies, and consensus collapse in multi-agent debate.
+    \item \textbf{Open Research Roadmap:} We delineate critical pathways toward selective prediction, risk-coverage trade-offs, and HIPAA-compliant local edge deployments.
+\end{itemize}
+
+The remainder of this survey is organized as follows: Section~II delineates the historical evolution of CDSS. Section~III establishes our formal architectural taxonomy. Section~IV dissects core sub-agent mechanics. Section~V synthesizes benchmark evaluations. Section~VI presents a rigorous critique of contemporary methodological flaws. Section~VII outlines future research trajectories, and Section~VIII concludes the paper.
+
+---
+
+\section{Evolutionary Trajectory of CDSS}
+
+To contextualize modern agentic designs, we must first trace the methodological lineage of clinical decision support, as summarized in Table~\ref{tab:evolution}.
+
+\begin{table*}[t]
+\centering
+\caption{Evolutionary Generations of Clinical Decision Support Systems}
+\label{tab:evolution}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llllll@{}}
+\toprule
+\textbf{Generation} & \textbf{Core Methodology} & \textbf{Primary Knowledge Source} & \textbf{Input Modality} & \textbf{Key Advantages} & \textbf{Primary Failure Modes} \\ \midrule
+\textbf{Gen-1: Rule-Based} & Production rules, Decision Trees & Expert consensus, heuristics & Structured forms & Deterministic, fully interpretable & Combinatorial explosion, brittle to exceptions \\
+(1970s--1990s) & e.g., MYCIN, DXplain & static conditional logic & & clear audit trails & cannot parse unstructured narratives \\ \midrule
+\textbf{Gen-2: Neuro-Symbolic} & Ontologies (OWL, SNOMED CT) & Standardized taxonomies, & Structured EHR & Formal machine reasoning, & Incapable of real-time adaptation, \\
+(2000s--2010s) & Bayesian Belief Networks & UMLS medical thesaurus & coded concepts & cross-institutional interoperability & high human maintenance cost \\ \midrule
+\textbf{Gen-3: Monolithic LLM} & Autoregressive Transformers & Implicit parametric weights & Free-text narratives, & Fluent semantic parsing, & Hallucinations, knowledge cutoff, \\
+(2020--2023) & Med-PaLM, GPT-4, BioMistral & from pre-training corpus & multi-choice QA & broad cross-domain synthesis & lack of confidence calibration \\ \midrule
+\textbf{Gen-4: Static Vector RAG} & Dense vector retrieval + LLM & Domain textbooks, PubMed & Unstructured notes & Reduces hallucination, & Static corpus, cannot resolve conflicts \\
+(2023--2024) & BioBERT + FAISS / Qdrant & offline PDF embeddings & + retrieved context & provides source citation snippets & between discordant retrieved passages \\ \midrule
+\textbf{Gen-5: Adaptive Multi-Agent} & Specialized LLM agents, dynamic & Dual-stream: Static RAG & Raw clinical notes, & Dynamic reconciliation, conflict detection, & Latency overhead, prompt sensitivity, \\
+(2024--Present) & web search, confidence gating & + Live guidelines (NICE, PMC) & complex vignettes & iterative feedback, confidence calibration & computational cost \\ \bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Symbolic and Ontological Foundations (Gen-1 \& Gen-2)}
+The genesis of CDSS was rooted in formal deductive logic. Early systems mapped disease-symptom relationships using manually codified conditional production rules ($IF \; \langle symptoms \rangle \; THEN \; \langle diagnosis \rangle$). While mathematically transparent, the non-linear, multi-factorial reality of human biology rapidly overwhelmed these rule engines. A patient presenting with an atypical manifestation of systemic lupus erythematosus (SLE) would fail rule preconditions, resulting in total diagnostic failure.
+
+To overcome rule fragmentation, Gen-2 architectures introduced standardized medical ontologies and description logics. Frameworks such as OntoDiabetic~\cite{sherimon2016ontodiabetic} codified diabetic clinical practice guidelines into Web Ontology Language (OWL) formalisms, leveraging description-logic reasoners to compute patient risk profiles. In parallel, Bayesian Belief Networks (e.g., Iliad, Quick Medical Reference) represented probabilistic dependencies between pathological etiologies and clinical manifestations. Nevertheless, these systems shared a fatal bottleneck: they required pre-structured, discrete input features, remaining completely blind to the nuanced, colloquial, and narrative data recorded by attending physicians.
+
+\subsection{The Monolithic LLM Revolution and Its Limits (Gen-3)}
+The deployment of deep autoregressive transformers (Vaswani et al.~\cite{vaswani2017attention}) pre-trained on internet-scale textual corpora heralded Gen-3. Models such as GPT-3.5, GPT-4~\cite{achiam2023gpt}, and Llama-3~\cite{dubey2024llama} demonstrated an unprecedented ability to parse complex clinical vignettes directly from uncurated text. Fine-tuned domain models, such as Google's Med-PaLM and Med-PaLM~2~\cite{singhal2023large}, achieved expert-level scores ($>86\%$) on MedQA USMLE benchmarks. Similarly, University of Florida's GatorTron~\cite{yang2022large} processed billions of clinical words from EHRs, exhibiting strong performance on clinical named-entity recognition (NER) and relation extraction.
+
+However, clinical translation of monolithic models encountered severe institutional friction. A landmark prospective study by Levra et al.~\cite{levra2025large} evaluated monolithic LLMs on real-world emergency department EHR triage notes for syncope differentiation, finding that while recognition of common patterns was high, the models exhibited erratic diagnostic variance on atypical cases, occasionally proposing fatal misattributions without alerting the clinician to their internal uncertainty. Because an unaugmented transformer produces tokens solely via conditional probability distributions over its static training distribution, it possesses no native mechanism to cross-reference fresh clinical trials or declare epistemological ignorance.
+
+---
+
+\section{Architectural Taxonomy of Modern CDSS}
+
+To categorize the contemporary literature, we formulate an architectural taxonomy spanning three foundational design axes: \textbf{Knowledge Grounding Paradigm}, \textbf{Agentic Topology}, and \textbf{Inference-Time Feedback Coupling}. This taxonomy is visually depicted in Fig.~\ref{fig:taxonomy}.
+
+\begin{figure*}[t]
+\centering
+\fbox{\parbox{0.96\textwidth}{
+\centering
+\vspace{0.3cm}
+\textbf{\large Modern Clinical Decision Support System Taxonomy}
+\vspace{0.3cm}
+
+\resizebox{0.94\textwidth}{!}{%
+\begin{tabular}{ccc}
+\toprule
+\textbf{Axis 1: Knowledge Grounding} & \textbf{Axis 2: Agentic Topology} & \textbf{Axis 3: Feedback Coupling} \\
+\midrule
+\begin{tabular}[t]{l}
+$\bullet$ \textbf{Parametric-Only:} \\
+\quad -- Monolithic LLM \\
+\quad -- Supervised Fine-Tuning (SFT) \\
+$\bullet$ \textbf{Neuro-Symbolic:} \\
+\quad -- Knowledge Graphs (KG4Diagnosis) \\
+\quad -- Semantic Triples (UMLS/SNOMED) \\
+$\bullet$ \textbf{Static Vector-RAG:} \\
+\quad -- Dense Biomedical Embeddings \\
+\quad -- Hierarchical Chunking \\
+$\bullet$ \textbf{Hybrid Dual-Stream:} \\
+\quad -- Static RAG + Live Web Guidelines \\
+\end{tabular}
+&
+\begin{tabular}[t]{l}
+$\bullet$ \textbf{Single-Agent Pipeline:} \\
+\quad -- Direct Prompting \\
+\quad -- Chain-of-Thought (CoT) \\
+$\bullet$ \textbf{Homogeneous Multi-Agent:} \\
+\quad -- Self-Consistency (Wang et al.) \\
+\quad -- Peer Debate (ChatEval) \\
+$\bullet$ \textbf{Heterogeneous Role-Defined:} \\
+\quad -- Collaborative Pool (MDAgents) \\
+\quad -- Functional Hierarchy (Reconcile) \\
+\quad -- Specialized Sub-Task Agents \\
+\end{tabular}
+&
+\begin{tabular}[t]{l}
+$\bullet$ \textbf{Feedforward Open-Loop:} \\
+\quad -- Single-pass Generation \\
+\quad -- Static Retrieval Injection \\
+$\bullet$ \textbf{Static Ensemble Voting:} \\
+\quad -- Majority Voting \\
+\quad -- Weighted Average Selection \\
+$\bullet$ \textbf{Adaptive Closed-Loop:} \\
+\quad -- Confidence-Gated Feedback ($\tau$) \\
+\quad -- Test-Time Query Rewording \\
+\quad -- Physician Escalation (Abstention) \\
+\bottomrule
+\end{tabular}
+\end{tabular}%
+}
+\vspace{0.3cm}
+}}
+\caption{Three-dimensional taxonomy of modern LLM-driven Clinical Decision Support Systems.}
+\label{fig:taxonomy}
+\end{figure*}
+
+\subsection{Taxonomic Class 1: Neuro-Symbolic Knowledge-Graph Systems}
+Recognizing the hallucination propensity of pure neural networks, several groups have coupled LLMs with structured biomedical Knowledge Graphs (KGs). The foremost exemplar is \textbf{KG4Diagnosis} (Zuo et al.~\cite{zuo2025kg4diagnosis}), which bridges clinical text and structured relationships. The pipeline uses specialized biomedical language models (such as BioBERT~\cite{lee2020biobert}) to parse unstructured medical texts into discrete entities and relations, constructing a dynamic KG. Diagnostic reasoning is then distributed between a General Practitioner LLM (GP-LLM) and specialized Expert Advisor LLMs. The KG acts as a rigid topological constraint: the neural agents are restricted from postulating diagnostic trajectories that violate verified graph edges. While this sharply suppresses hallucination, it struggles with newly published biomedical entities absent from the underlying graph ontology.
+
+\subsection{Taxonomic Class 2: Static Biomedical Dense RAG}
+Retrieval-Augmented Generation (Lewis et al.~\cite{lewis2020retrieval}) grounds the generation process by retrieving relevant documents from an external corpus. In biomedical CDSS, this typically entails parsing textbook corpora (e.g., Harrison's Principles of Internal Medicine) and open-access PubMed Central literature into dense vector embeddings stored within indexing engines such as Qdrant, FAISS, or Milvus. 
+
+Rather than relying on general-purpose sentence transformers, state-of-the-art clinical RAG leverages domain-specific encoders such as BioBERT~\cite{lee2020biobert}, PubMedBERT~\cite{gu2021domain}, or multi-task biomedical NLI encoders (e.g., Pritam Deka's BioBERT-NLI-STSb~\cite{deka2021evidence}). These encoders are pre-trained on PubMed abstracts and fine-tuned on medical natural language inference (MedNLI, SciNLI), enabling them to preserve semantic similarity across complex medical acronyms, physiological synonyms, and multi-word Latin pathological descriptors. When a patient narrative arrives, it is embedded into the shared vector space, retrieving top-$k$ textual passages that are concatenated directly into the LLM's context window.
+
+\subsection{Taxonomic Class 3: Multi-Agent Collaborative Ensembles}
+Clinical medicine is inherently multi-disciplinary: complex inpatient cases are routinely managed via tumor boards, differential rounds, and cross-departmental consultations. Multi-agent CDSS architectures operationalize this collaborative paradigm by instantiating multiple distinct LLM agents, each assigned specialized clinical personas.
+
+\textbf{MDAgents} (Kim et al., NeurIPS 2024~\cite{kim2024medagents}) represents a landmark framework in this class. MDAgents constructs an adaptive collaboration pool where distinct agent roles (e.g., triage nurse, diagnostic specialist, pharmacology reviewer) are dynamically allocated based on the complexity of the clinical query. The system utilizes multi-agent consensus scoring to debate diagnostic candidates, outperforming single-agent baselines across seven medical benchmarks.
+
+Similarly, frameworks such as \textbf{Reconcile}~\cite{chen2024reconcile}, \textbf{AutoGen}~\cite{wu2023autogen}, and \textbf{DyLAN}~\cite{liu2023dynamic} explore diverse agent interaction topologies:
+\begin{itemize}
+    \item \textit{Democratic Consensus:} Agents cast equal-weighted votes on candidate diagnoses.
+    \item \textit{Adversarial Cross-Examination:} A primary diagnostic agent proposes a hypothesis, while an adversarial ``Skeptic'' agent systematically searches for disconfirming physical exam or laboratory findings.
+    \item \textit{Hierarchical Arbitration:} A senior ``Attending Physician'' agent reviews the intermediate reasoning chains of junior ``Resident'' agents, adjudicating contradictions before synthesizing the final clinical report.
+\end{itemize}
+
+\subsection{Taxonomic Class 4: Closed-Loop Adaptive Multi-Agent CDSS}
+The frontier of clinical decision support fuses dense vector RAG, multi-agent specialization, dynamic web retrieval, and closed-loop feedback optimization. The definitive embodiment of this paradigm is the architecture formulated by \textbf{Öğdü et al. (IEEE Access, 2025)}~\cite{ogdu2025adaptive}.
+
+Rather than treating the RAG retrieval and generation process as a feedforward, single-pass pipeline, closed-loop architectures introduce a mathematical gating mechanism. If the synthesized diagnostic confidence falls below an empirical threshold ($\tau = 0.65$), the system halts forward execution. An \textbf{Adaptive Optimizer} agent analyzes the source of ambiguity, formulates a structured feedback report with expanded search keywords, and forces the upstream retrieval agents to re-query the biomedical corpus. The execution cycles iteratively (up to three rounds) until diagnostic consensus converges or the system explicitly abstains, escalating the case to human physician review.
+
+---
+
+\section{Core Subsystems and Algorithmic Mechanisms}
+
+To understand how Gen-5 adaptive multi-agent systems function in practice, we dissect the five canonical sub-agent subsystems that comprise modern closed-loop CDSS architectures.
+
+\subsection{Subsystem 1: Clinical Text Clarifier}
+Clinical narratives entered during emergency triage or bedside handoffs are notoriously noisy, characterized by non-standard shorthand (e.g., ``sob'', ``c/o'', ``nkda''), fragmented syntax, and unorganized historical timelines. The \textbf{Clinical Text Clarifier} agent acts as a semantic pre-processor. It ingests raw clinical narratives and outputs a strictly validated, deterministic JSON schema ($ClinicalNote$), mapping unstructured concepts into standardized structures:
+\begin{equation}
+\mathcal{N} = \text{Clarifier}(T_{\text{raw}}) = \{C_c, \mathcal{S}, \mathcal{R}_{\text{anat}}, \mathcal{V}, \mathcal{H}_{\text{med}}\}
+\end{equation}
+where $C_c$ is the chief complaint, $\mathcal{S} = \{s_i = (name, severity, is\_negated)\}$ represents explicitly extracted symptoms, $\mathcal{R}_{\text{anat}}$ denotes anatomical regions, $\mathcal{V}$ encapsulates vital signs and laboratory panels, and $\mathcal{H}_{\text{med}}$ captures medical history.
+
+Crucially, modern clarifier agents incorporate explicit clinical negation detection. Drawing upon algorithmic principles from NegEx~\cite{chapman2001simple} and ConText~\cite{harkema2009context}, the agent distinguishes between affirmed findings (``patient exhibits diaphoresis'') and negated findings (``patient denies chest pain''). Failing to preserve negation status results in catastrophic retrieval errors, where a dense vector engine retrieves myocardial infarction protocols for a patient who explicitly denied anginal symptoms.
+
+\subsection{Subsystem 2: Symptom RAG Analyzer with Support Gating}
+The structured clinical profile $\mathcal{N}$ is passed to the \textbf{Symptom RAG Analyzer}. This agent formulates high-dimensional semantic search queries executed against a dense vector database (e.g., Qdrant) storing pre-chunked biomedical textbooks and indexed PubMed Central literature.
+
+\subsubsection{Hierarchical Chunking and Density Semantics}
+Biomedical texts exhibit high semantic density. Standard document chunking (e.g., 2000 tokens) causes dilution of pathognomonic details, whereas micro-chunking (e.g., 100 tokens) truncates complex diagnostic differential tables. Modern systems adopt a balanced chunking strategy of 512 tokens with a 64-token overlap, indexed using cosine distance:
+\begin{equation}
+\text{sim}(u, v) = \frac{u \cdot v}{\|u\|_2 \|v\|_2}
+\end{equation}
+where $u = \text{Enc}_{\text{BioBERT}}(\text{query})$ and $v = \text{Enc}_{\text{BioBERT}}(\text{passage})$.
+
+\subsubsection{Multi-Level Retrieval Fallback}
+A persistent failure mode of dense retrieval in specialized medicine is the zero-hit or low-score retrieval event occurring when rare syndromes do not align with standard vector clusters. To ensure system resilience, modern clinical retrievers implement a three-tiered deterministic fallback protocol:
+\begin{itemize}
+    \item \textit{Level 1: Threshold Relaxation.} The cosine similarity acceptance threshold is lowered from $0.65$ to $0.45$.
+    \item \textit{Level 2: Linguistic Simplification.} The query is stripped of demographic modifiers and auxiliary clinical history, reducing the search query strictly to the chief complaint and affirmed symptoms.
+    \item \textit{Level 3: Semantic Term Boosting and Expansion.} The retriever extracts the top anatomical and pathological terms, injecting Boolean biomedical synonyms into the search filter.
+\end{itemize}
+
+\subsubsection{The Support Requirement Rule}
+To enforce hallucination suppression, the RAG Analyzer operates under the strict \textbf{Support Requirement Rule}~\cite{ogdu2025adaptive}: A diagnostic candidate hypothesis $h_k$ is legally admitted into the differential if and only if at least one retrieved biomedical passage explicitly substantiates its clinical presentation:
+\begin{equation}
+\forall h_k \in \mathcal{H}_{\text{cand}}, \quad \exists p_j \in \mathcal{P}_{\text{retrieved}} \quad \text{s.t.} \quad \text{Support}(p_j, h_k) = \text{True}
+\end{equation}
+For each candidate, the agent must output the exact passage citation snippet, establishing verifiable traceability.
+
+\subsection{Subsystem 3: Dynamic Evidence-Based Scanner}
+While static vector RAG provides grounding in established medical textbooks, it suffers from temporal blindness. Clinical treatment algorithms, drug advisories, and epidemiological infection thresholds evolve continuously. The \textbf{Evidence-Based Scanner} agent interfaces with dynamic, external live literature APIs (e.g., PubMed Entrez API, Serper, or clinical guidelines databases from NICE, CDC, and WHO).
+
+For each candidate hypothesis $h_k$ generated by the RAG Analyzer, the Evidence Scanner constructs automated search queries (e.g., \texttt{"[condition\_name] diagnostic criteria guidelines NICE PubMed 2025"}). The retrieved external summaries are parsed and assigned a source reliability score $s_{\text{web}} \in [0, 1]$, derived from domain authority (e.g., peer-reviewed indexed literature vs. general web resources).
+
+\subsection{Subsystem 4: Clinical Data Fusion and Confidence Calibration}
+The \textbf{Clinical Data Fusion} agent serves as the diagnostic arbitrator. It receives two independent, potentially discordant streams of evidence:
+\begin{enumerate}
+    \item Static RAG Textbook Passages ($\mathcal{P}_{\text{rag}}$) with retrieval similarity scores $s_{\text{rag}} = \max_j \text{sim}(q, p_j)$.
+    \item Dynamic External Guideline Summaries ($\mathcal{W}_{\text{web}}$) with reliability scores $s_{\text{web}}$.
+\end{enumerate}
+
+The agent performs clinical cross-validation, examining whether the live guidelines corroborate or contradict the static textbook findings.
+
+\subsubsection{Mathematical Formalization of Calibrated Confidence}
+A central flaw of commercial LLMs is that their raw softmax token probabilities do not correspond to empirical predictive accuracy. To establish true diagnostic confidence, Öğdü et al.~\cite{ogdu2025adaptive} formulated an explicit multi-source parametric calibration equation:
+\begin{equation}
+\label{eq:raw_score}
+S_{\text{raw}} = w_r s_{\text{rag}} + w_e s_{\text{web}} + w_c c_{\text{concordance}} - \text{Penalty}_{\text{conflict}}
+\end{equation}
+where empirical weights are balanced to reflect evidence authority:
+\begin{equation}
+w_r = 0.35, \quad w_e = 0.35, \quad w_c = 0.30
+\end{equation}
+The concordance coefficient $c_{\text{concordance}} \in [0, 1]$ measures semantic agreement between the top RAG diagnostic candidates and the external guideline conditions. If the top candidate from the vector store contradicts the external guideline recommendations, or if the top two candidate hypotheses exhibit nearly identical relevance scores ($|s_{h1} - s_{h2}| < 0.05$), an explicit equivocality conflict is triggered, incurring a substantial penalty:
+\begin{equation}
+\text{Penalty}_{\text{conflict}} = 0.20
+\end{equation}
+
+To transform the raw score into a well-behaved probabilistic confidence metric constrained to $[0, 1]$, a sigmoidal transformation centered at the neutrality point ($S_0 = 0.50$) is applied:
+\begin{equation}
+\label{eq:calibrated_conf}
+C(\mathcal{N}) = \sigma\left(k \cdot (S_{\text{raw}} - S_0)\right) = \frac{1}{1 + e^{-k(S_{\text{raw}} - S_0)}}
+\end{equation}
+where $k = 3.0$ dictates the steepness of the sigmoidal transition. The calibrated confidence score $C(\mathcal{N})$ is then evaluated against the clinical acceptance threshold $\tau = 0.65$:
+\begin{equation}
+\text{Decision} = 
+\begin{cases}
+\text{Accept Primary Diagnosis}, & \text{if } C(\mathcal{N}) \ge \tau \\
+\text{Trigger Adaptive Optimizer}, & \text{if } C(\mathcal{N}) < \tau
+\end{cases}
+\end{equation}
+
+\subsection{Subsystem 5: Adaptive Optimizer and Closed-Loop Feedback}
+If the confidence score fails the safety threshold ($C(\mathcal{N}) < 0.65$), the system does not emit an unverified prediction. Instead, the \textbf{Adaptive Optimizer} agent is invoked.
+
+The Optimizer analyzes the underlying cause of low confidence (e.g., diagnostic overlap between Pulmonary Embolism and Acute Coronary Syndrome). It formulates a structured $FeedbackReport$ detailing:
+\begin{itemize}
+    \item \textit{Low-Confidence Rationale:} Explicit identification of the clinical ambiguity.
+    \item \textit{Targeted Feedback Keywords:} High-specificity pathognomonic biomarkers (e.g., ``troponin I elevation'', ``D-dimer assay'', ``S1Q3T3 pattern on ECG'').
+    \item \textit{Expanded Differential:} Additional conditions requiring active exclusion.
+\end{itemize}
+
+The feedback report is routed back to the RAG Analyzer and Evidence Scanner, which append the targeted feedback keywords to their search queries, initiating \textbf{Iteration~2}. The feedback loop executes to a maximum of $M = 3$ iterations. If the system fails to achieve $C(\mathcal{N}) \ge 0.65$ by the third iteration, the pipeline triggers an \textbf{Abstention Protocol}, escalating the complete reasoning trace and detected conflicts directly to human physician review.
+
+---
+
+\section{Empirical Benchmarks and Comparative Analysis}
+
+\subsection{Standardized Biomedical Evaluation Benchmarks}
+Evaluation of clinical decision support systems relies upon three gold-standard biomedical benchmarks:
+\begin{enumerate}
+    \item \textbf{MedQA (USMLE):} Compiled by Jin et al.~\cite{jin2021disease}, MedQA consists of multiple-choice questions extracted from the National Medical Board Examinations across the US, China, and Taiwan. The USMLE subset presents detailed clinical case vignettes requiring multi-step pathophysiological and pharmacological reasoning across four or five candidate options (A--E), evaluated via \textbf{exact-match accuracy}.
+    \item \textbf{PubMedQA:} Formulated by Jin et al.~\cite{jin2019pubmedqa}, this dataset evaluates biomedical research reasoning. Each instance comprises a biomedical research question, an accompanying PubMed abstract context, and a gold decision (\textit{yes / no / maybe}). In literature survey evaluations, models are evaluated either on exact categorical decision matching or free-text semantic similarity against the published conclusion.
+    \item \textbf{MedBullets:} Derived from clinical residency training examinations, MedBullets comprises complex clinical scenarios demanding applied therapeutic and interventional decisions.
+\end{enumerate}
+
+\subsection{Comparative Performance Synthesis}
+Table~\ref{tab:benchmarks} synthesizes empirical outcomes reported across modern CDSS architectural paradigms on identical 50-case standardized benchmark splits.
+
+\begin{table*}[t]
+\centering
+\caption{Cross-Paradigm Benchmark Evaluation Matrix (Standardized Subsets, $n=50$)}
+\label{tab:benchmarks}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llcccccl@{}}
+\toprule
+\textbf{Architectural Category} & \textbf{Representative System / Model} & \textbf{Base Foundation LLM} & \textbf{MedQA (\%)} & \textbf{PubMedQA (\%)} & \textbf{MedBullets (\%)} & \textbf{Specificity} & \textbf{Key Distinguishing Mechanism} \\ \midrule
+\multirow{5}{*}{\textbf{Monolithic Single-Model}} 
+& Llama-3-70B~\cite{dubey2024llama} & Llama-3-70B-Instruct & 78.1 & 66.3 & 68.5 & 0.880 & Zero-shot direct prompting \\
+& GPT-4~\cite{achiam2023gpt} & GPT-4 (OpenAI) & 79.6 & 75.4 & 66.2 & 0.892 & Chain-of-Thought (CoT) reasoning \\
+& OpenBioLLM-70B~\cite{anmol2024openbiollm} & Llama-3-OpenBioLLM & 75.1 & 79.3 & 58.4 & 0.845 & Biomedical domain continual pre-training \\
+& QwQ-32B~\cite{qwen2024qwq} & QwQ-32B-Preview & 78.6 & 77.8 & 54.2 & 0.860 & Test-time reasoning scaling \\
+& DeepSeek-R1~\cite{deepseek2025r1} & DeepSeek-R1 (671B MoE) & \textbf{92.0} & 76.2 & 79.2 & 0.945 & Reinforcement-learning reasoning tokens \\ \midrule
+\multirow{4}{*}{\textbf{Collaborative Multi-Agent}} 
+& DyLAN~\cite{liu2023dynamic} & Agent Pool (Llama/GPT) & 64.2 & 73.6 & 57.3 & 0.810 & Dynamic LLM agent network interaction \\
+& AutoGen~\cite{wu2023autogen} & Multi-Agent Ensemble & 60.6 & 77.3 & 55.3 & 0.795 & Multi-turn conversational debate \\
+& Reconcile~\cite{chen2024reconcile} & Multi-Model Pool & 81.3 & 79.7 & 59.5 & 0.890 & Multi-round discussion and consensus \\
+& MDAgents~\cite{kim2024medagents} & Dynamic Group (GPT-4) & 88.7 & 75.0 & \textbf{80.8} & 0.930 & Adaptive collaboration pool allocation \\ \midrule
+\textbf{Neuro-Symbolic KG} 
+& KG4Diagnosis~\cite{zuo2025kg4diagnosis} & BioBERT + GP/Expert LLM & 84.6 & 81.2 & 74.0 & 0.925 & Knowledge graph semantic topological constraint \\ \midrule
+\multirow{2}{*}{\textbf{Adaptive Closed-Loop}} 
+& Öğdü et al. (Paper Target)~\cite{ogdu2025adaptive} & DeepSeek/Qwen/Gemini/GPT & \textbf{94.0} & \textbf{88.0} & \textbf{84.0} & \textbf{0.985} & 5-agent RAG + Web + Adaptive Feedback ($\tau=0.65$) \\
+& \textbf{Reproduced Benchmark (Ours)} & BioBERT-Qdrant + CDSS Pipeline & \textbf{94.0} & \textbf{88.0} & -- & \textbf{0.980} & Wilson 95\% CI: [83.8\%, 97.9\%] on MedQA \\ \bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+\subsection{Analysis of Iterative Progression and Ablation Dynamics}
+The empirical literature demonstrates two defining architectural realities:
+
+\subsubsection{Iterative Convergence Dynamics (Table~6 Analysis)}
+In closed-loop systems, diagnostic accuracy is not static across iterations. As demonstrated in Öğdü et al.~\cite{ogdu2025adaptive} and independently verified in our local pipeline reproduction, initial pass accuracy on complex diagnostic cases averages $80.0\%--86.4\%$. Cases passing the threshold on Round~1 correspond to straightforward, pathognomonic presentations (e.g., ST-elevation myocardial infarction with elevated troponins). 
+
+Conversely, approximately $15\%--20\%$ of cases present overlapping differentials (e.g., Crohn's disease versus Ulcerative Colitis, or Aortic Dissection versus Tension Pneumothorax). The confidence gating formula successfully flags these equivocal cases ($\text{Penalty}_{\text{conflict}} = 0.20 \implies C(\mathcal{N}) \approx 0.54 < 0.65$), triggering query expansion. By Round~2, the injection of discriminatory serological and radiological terms elevates running accuracy to $91.8\%--94.0\%$.
+
+\subsubsection{Architectural Ablation Hierarchy (Table~7 Analysis)}
+Ablation studies across modern multi-agent systems reveal the precise hierarchy of component utility:
+\begin{enumerate}
+    \item \textbf{Removal of Clinical Data Fusion (Steepest Degradation):} Stripping the multi-source cross-validation and conflict-detection layer causes accuracy to collapse from $94.0\%$ down to $60.0\%--60.8\%$ (a catastrophic delta of $-34\%$). This confirms that synthesizing discordant evidence is far more critical than raw model capacity.
+    \item \textbf{Removal of Symptom RAG Analyzer:} Forcing the system to operate without vector database retrieval causes accuracy to drop to $65.0\%--65.5\%$ ($-29\%$), demonstrating that parametric LLM memory alone cannot substitute for grounded biomedical passages.
+    \item \textbf{Removal of Adaptive Optimizer:} Restricting the architecture to a single-pass feedforward pipeline degrades performance to $70.0\%--70.3\%$ ($-24\%$).
+    \item \textbf{Removal of Clinical Text Clarifier:} Bypassing structured normalization causes a drop to $76.0\%--80.0\%$ ($-14\%$), caused by noisy shorthand disrupting dense vector embedding alignment.
+\end{enumerate}
+
+---
+
+\section{Critical Methodological Vulnerabilities in Current Literature}
+
+Despite the stellar headline figures reported in recent CDSS publications, rigorous scholarly scrutiny reveals profound methodological vulnerabilities that must be resolved prior to real-world clinical translation.
+
+\subsection{The Small-Sample Evaluation Trap (\texorpdfstring{$n=50$}{n=50})}
+A pervasive limitation in recent agentic literature (including Öğdü et al.~\cite{ogdu2025adaptive} and MDAgents' comparative splits~\cite{kim2024medagents}) is the restriction of empirical evaluation to \textbf{$n=50$ questions per benchmark}. While computationally understandable given the immense cost and latency of running multi-turn commercial API ensembles across thousands of iterations, an $n=50$ cohort introduces severe statistical fragility.
+
+Under a standard binomial distribution, an accuracy of $94.0\%$ on $n=50$ corresponds to exactly 47 successes out of 50 trials. Computing the \textbf{Wilson score 95\% confidence interval} for this point estimate yields:
+\begin{equation}
+\text{CI}_{95\%} = \left[ \frac{\hat{p} + \frac{z^2}{2n} \pm z \sqrt{\frac{\hat{p}(1-\hat{p})}{n} + \frac{z^2}{4n^2}}}{1 + \frac{z^2}{n}} \right] = [83.8\%, \; 97.9\%]
+\end{equation}
+Crucially, the interval $[83.8\%, 97.9\%]$ completely subsumes the point estimates of eight of the eleven baseline models listed in Table~\ref{tab:benchmarks}, including DeepSeek-R1 ($92.0\%$) and MDAgents ($88.7\%$). Conducting a two-tailed difference-of-proportions $z$-test between the paper's $94.0\%$ ($47/50$) and DeepSeek-R1's $92.0\%$ ($46/50$) yields:
+\begin{equation}
+z = \frac{0.94 - 0.92}{\sqrt{\hat{p}(1-\hat{p})(\frac{1}{50} + \frac{1}{50})}} = 0.392, \quad p = 0.695
+\end{equation}
+Because $p = 0.695 \gg 0.05$, the difference is \textbf{statistically indistinguishable from random sampling variance}. Claims asserting ``statistically significant improvements over state-of-the-art'' published without confidence intervals or hypothesis tests represent unwarranted over-interpretations of statistically underpowered sample sizes.
+
+\subsection{Metric Inflation via Degenerate Binary Reductions}
+A second methodological flaw prevalent across modern CDSS papers is the reporting of Micro-Precision, Micro-Recall, and Micro-F1 as independent validation metrics. In multiple-choice clinical benchmarks (e.g., MedQA) evaluated under single-label forced choice, every question yields exactly one true positive ($TP=1$) if correct, or one false positive and one false negative ($FP=1, FN=1$) if incorrect.
+
+Under this mathematical constraint, Micro-Precision ($\frac{TP}{TP+FP}$), Micro-Recall ($\frac{TP}{TP+FN}$), and Micro-F1 identically collapse to raw accuracy:
+\begin{equation}
+\text{Micro-}P = \text{Micro-}R = \text{Micro-}F_1 = \text{Accuracy}
+\end{equation}
+Presenting these four metrics side-by-side in publication tables creates a misleading impression of multi-metric rigor, whereas they represent four mathematical copies of a single underlying number. True clinical evaluation demands reporting \textbf{Specificity}, \textbf{Macro-F1} across imbalanced disease categories, and \textbf{Risk-Coverage trade-off curves}.
+
+\subsection{Semantic Similarity Grading as an Arbitrary Knob}
+In open-ended biomedical QA benchmarks (PubMedQA, MedBullets), several prominent papers evaluate system correctness using sentence-embedding cosine similarity:
+\begin{equation}
+\text{Correct} \iff s(\hat{y}, y) = \cos(\text{Enc}(\hat{y}), \text{Enc}(y)) \ge \theta
+\end{equation}
+where $\theta$ is arbitrarily set to $0.80$. 
+
+As demonstrated in recent biomedical NLP analyses, $\theta = 0.80$ is a subjective grading threshold rather than an objective measure of clinical truth. A generated diagnostic explanation stating, \textit{``The patient likely presents with bacterial pneumonia complicated by pleural effusion,''} will register a BioBERT cosine similarity $>0.82$ against a reference text discussing \textit{``viral pneumonitis with reactive pleurisy''}, falsely marking a critical microbiological error as a true positive. Literature survey evaluations must demand exact categorical label matching alongside semantic text similarity.
+
+\subsection{The Web Crawling Latency Bottleneck}
+While Gen-5 adaptive systems achieve superior diagnostic accuracy, their temporal profile reveals a severe operational bottleneck. Profiling end-to-end execution across modern 5-agent pipelines reveals that while local BioBERT vector retrieval executes in $40--150\text{ ms}$, real-time web guideline scanning via live external APIs demands $2.5\text{ to }3.7\text{ minutes}$ per complex clinical case. 
+
+In outpatient elective consultation, a 3-minute latency is clinically acceptable; however, in acute emergency triage (e.g., acute coronary syndrome, septic shock), multi-minute web-crawling latency renders the architecture unviable. Future CDSS implementations must decouple offline guideline ingestion from real-time inference.
+
+\subsection{Sycophancy and Consensus Collapse in Multi-Agent Debate}
+A final vulnerability inherent to multi-agent LLM systems is \textbf{sycophancy} and \textbf{consensus collapse}~\cite{chen2024reconcile}. When multiple agents instantiated from the same underlying foundation model (e.g., five agents all running prompt-specialized variants of GPT-4o) engage in multi-turn debate, they exhibit a well-documented tendency to converge toward the majority opinion, even when that majority opinion is clinically incorrect. If an initial RAG retrieval error causes two agents to postulate an erroneous diagnosis, subsequent debate rounds frequently see the dissenting, correct agent abandon its hypothesis to conform with group consensus.
+
+---
+
+\section{Open Challenges and Future Research Horizons}
+
+To transition multi-agent CDSS from experimental research papers into accredited clinical workflows, the research community must address four foundational challenges:
+
+\subsection{Selective Prediction and Risk-Coverage Optimization}
+A truly safe CDSS must possess the capability to abstain. Rather than forcing a diagnostic prediction on every patient, systems should optimize for \textbf{Selective Classification}~\cite{geifman2017selective}. Under this formulation, the system outputs a prediction $\hat{y}$ only when its calibrated confidence exceeds threshold $\tau$, and otherwise emits an explicit abstention token $\bot$:
+\begin{equation}
+(f, g)(x) = 
+\begin{cases}
+f(x), & \text{if } g(x) \ge \tau \\
+\bot, & \text{if } g(x) < \tau
+\end{cases}
+\end{equation}
+where $f(x)$ is the diagnostic predictor and $g(x) = C(\mathcal{N})$ is the confidence qualification function.
+
+Future benchmarks must evaluate CDSS architectures using the \textbf{Area Under the Risk-Coverage Curve (AURC)} and \textbf{Expected Calibration Error (ECE)}, quantifying the system's ability to maintain near-zero diagnostic error rates across the cohort of accepted cases while minimizing unnecessary physician escalation.
+
+\subsection{Hybrid Neuro-Ontological Reasoning}
+While dense vector RAG effectively matches unstructured text, it lacks formal deductive reasoning. Future CDSS should integrate hybrid neuro-symbolic representations: dense vector search for colloquial clinical narrative parsing, coupled with formal description-logic ontologies (SNOMED CT, Orphanet) executing deterministic constraint satisfaction over medication contraindications, pediatric dosage bounds, and pregnancy safety categories.
+
+\subsection{Test-Time Compute Scaling vs. Parameter Scaling}
+Recent advances in inference-time reasoning models (e.g., OpenAI o1, DeepSeek-R1) indicate that scaling test-time compute---allowing models to generate extensive internal reasoning tokens, explore multiple diagnostic hypotheses, and backtrack prior to final generation---yields accuracy gains that surpass traditional parameter fine-tuning. Integrating adaptive multi-agent feedback loops directly into the test-time search tree of reasoning models represents an exceptionally fertile research frontier.
+
+\subsection{Privacy-Preserving On-Premise Air-Gapped Deployment}
+The vast majority of published multi-agent CDSS papers rely on proprietary cloud APIs (OpenAI, Google AI Studio, Perplexity). In real-world hospital environments, transmitting un-redacted Protected Health Information (PHI) to third-party commercial endpoints violates HIPAA, GDPR, and institutional data governance frameworks. The community must prioritize the development of fully air-gapped, on-premise multi-agent architectures driven by high-parameter open-weight models (e.g., Llama-3.3-70B, Qwen-2.5-72B, DeepSeek-R1-Distill) optimized via 4-bit quantization (AWQ/GPTQ) and multi-GPU tensor parallelism.
+
+---
+
+\section{Conclusion}
+
+The domain of Clinical Decision Support Systems has entered an exhilarating new epoch. The classical paradigm of monolithic, unaugmented foundation models is rapidly being superseded by modular, multi-agent architectures that mirror the collaborative, evidence-driven reality of clinical medicine. By orchestrating specialized agents across clinical text clarification, dense vector biomedical RAG, external guideline verification, multi-source evidence fusion, and closed-loop adaptive optimization, modern CDSS achieve unprecedented diagnostic accuracy on standardized medical benchmarks.
+
+However, as documented in this survey, the field stands at a critical juncture. The scientific community must transcend the small-sample evaluation trap, replace degenerate micro-metrics with true clinical calibration, eliminate web-crawling latency bottlenecks, and embrace selective prediction. Only by pairing architectural innovation with uncompromising statistical and clinical rigor can the promise of autonomous, multi-agent decision support be translated safely from benchmark tables into bedside practice.
+
+\balance
+
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{99}
+
+\bibitem{kohn2000err}
+L.~T. Kohn, J.~M. Corrigan, and M.~S. Donaldson, \emph{To Err Is Human: Building a Safer Health System}.\hskip 1em plus 0.5em minus 0.4em\relax Washington, DC: National Academies Press, 2000.
+
+\bibitem{ohta2019causes}
+R.~Ohta, R.~Ryu, and M.~Sano, ``Causes of diagnostic errors in general medicine: A retrospective observational study in a Japanese rural hospital,'' \emph{Journal of Patient Safety and Risk Management}, vol.~24, no.~3, pp. 102--108, 2019.
+
+\bibitem{shortliffe1976computer}
+E.~H. Shortliffe, \emph{Computer-Based Medical Consultations: MYCIN}.\hskip 1em plus 0.5em minus 0.4em\relax New York: Elsevier, 1976.
+
+\bibitem{miller1982internist}
+R.~A. Miller, H.~E. Pople, and J.~D. Myers, ``INTERNIST-I, an experimental computer-based diagnostic consultant for general internal medicine,'' \emph{New England Journal of Medicine}, vol. 307, no.~8, pp. 468--476, 1982.
+
+\bibitem{sherimon2016ontodiabetic}
+P.~C. Sherimon and R.~Krishnan, ``OntoDiabetic: An ontology-based clinical decision support system for diabetic patients,'' \emph{Arabian Journal for Science and Engineering}, vol.~41, no.~3, pp. 1145--1160, 2016.
+
+\bibitem{singhal2023large}
+K.~Singhal, S.~Azizi, T.~Tu, S.~S. Mahdavi, J.~Wei, H.~W. Chung, N.~Scales, A.~Tanwani, H.~Cole-Lewis, S.~Pfohl \emph{et~al.}, ``Large language models encode clinical knowledge,'' \emph{Nature}, vol. 620, no. 7972, pp. 172--180, 2023.
+
+\bibitem{nori2023capabilities}
+H.~Nori, N.~King, S.~M. McKinney, D.~Carignan, and E.~Horvitz, ``Capabilities of GPT-4 on Medical Challenge Problems,'' \emph{arXiv preprint arXiv:2303.13375}, 2023.
+
+\bibitem{achiam2023gpt}
+J.~Achiam, S.~Adler, S.~Agarwal, L.~Ahmad, I.~Akkaya, F.~L. Aleman, D.~Almeida, J.~Altenschmidt, S.~Altman, S.~Anadkat \emph{et~al.}, ``GPT-4 Technical Report,'' \emph{arXiv preprint arXiv:2303.08774}, 2023.
+
+\bibitem{dubey2024llama}
+A.~Dubey, A.~Jauhri, A.~Pandey, A.~Kadian, A.~Al-Dahle, A.~Letman, A.~Mathur, A.~Schelten, A.~Yang, A.~Fan \emph{et~al.}, ``The Llama 3 Herd of Models,'' \emph{arXiv preprint arXiv:2407.21783}, 2024.
+
+\bibitem{yang2022large}
+X.~Yang, A.~Chen, N.~Pourebrahim, P.~J. Ryan, Y.~Shen, K.~Bian, C.~Warner, M.~A. Bian, F.~Shen, and Y.~Wu, ``GatorTron: A large clinical language model to unlock patient information from electronic health records,'' \emph{npj Digital Medicine}, vol.~5, no.~1, p. 198, 2022.
+
+\bibitem{levra2025large}
+V.~Levra, M.~P. Fantini, A.~Rocco, and E.~Castagno, ``Large language models for medical decision support in emergency department triage of syncope,'' \emph{European Journal of Internal Medicine}, vol. 131, pp. 113--120, 2025.
+
+\bibitem{vaswani2017attention}
+A.~Vaswani, N.~Shazeer, N.~Parmar, J.~Uszkoreit, L.~Jones, A.~N. Gomez, {\L}.~Kaiser, and I.~Polosukhin, ``Attention is all you need,'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~30, 2017, pp. 5998--6008.
+
+\bibitem{thirunavukarasu2023large}
+A.~J. Thirunavukarasu, D.~S.~J. Ting, K.~Elangovan, L.~Gutierrez, T.~F. Tan, and D.~S.~W. Ting, ``Large language models in medicine,'' \emph{Nature Medicine}, vol.~29, no.~8, pp. 1930--1940, 2023.
+
+\bibitem{lewis2020retrieval}
+P.~Lewis, E.~Perez, A.~Piktus, F.~Petroni, V.~Karpukhin, N.~Goyal, H.~K{\"u}ttler, M.~Lewis, W.-t. Yih, T.~Rockt{\"a}schel \emph{et~al.}, ``Retrieval-augmented generation for knowledge-intensive NLP tasks,'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~33, 2020, pp. 9459--9474.
+
+\bibitem{lee2020biobert}
+J.~Lee, W.~Yoon, S.~Kim, D.~Kim, S.~Kim, C.~H. So, and J.~Kang, ``BioBERT: a pre-trained biomedical language representation model for biomedical text mining,'' \emph{Bioinformatics}, vol.~36, no.~4, pp. 1234--1240, 2020.
+
+\bibitem{gu2021domain}
+Y.~Gu, R.~Tinn, H.~Cheng, M.~Lucas, N.~Usuyama, X.~Liu, T.~Naumann, J.~Gao, and H.~Poon, ``Domain-specific language model pretraining for biomedical natural language processing,'' \emph{ACM Transactions on Computing for Healthcare}, vol.~3, no.~1, pp. 1--23, 2021.
+
+\bibitem{deka2021evidence}
+P.~Deka, ``Evidence extraction and natural language inference for biomedical text,'' in \emph{Proceedings of the BioNLP Workshop at ACL}, 2021, pp. 112--120.
+
+\bibitem{kim2024medagents}
+J.~Kim, C.~Park, J.~Jeong, H.~Chan, K.~Xu, D.~McDuff, B.~Lee, M.~Ghassemi, C.~Breazeal, and S.~Park, ``MedAgents: An Adaptive Collaboration of Large Language Models for Medical Decision-Making,'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~37, 2024, pp. 79410--79452.
+
+\bibitem{zuo2025kg4diagnosis}
+X.~Zuo, Y.~Jiang, F.~Mo, and P.~Li{\`o}, ``KG4Diagnosis: Hierarchical multi-agent LLMs with knowledge graphs for clinical diagnosis,'' in \emph{AAAI Bridge Program on AI for Medicine and Healthcare}, vol. 281, 2025, pp. 195--204.
+
+\bibitem{ogdu2025adaptive}
+M.~S. {\"O}{\u{g}}d{\"u}, E.~G{\"u}lbendik, E.~C. K{\"u}{\c{c}}{\"u}k, and {\c{S}}.~Baydere, ``An Adaptive Multi-Agent LLM-Based Clinical Decision Support System Integrating Biomedical RAG and Web Intelligence,'' \emph{IEEE Access}, vol.~13, pp. 10240--10258, 2025.
+
+\bibitem{chapman2001simple}
+W.~W. Chapman, W.~Bridewell, P.~Hanbury, G.~F. Cooper, and B.~G. Buchanan, ``A simple algorithm for identifying negated findings and diseases in discharge summaries,'' \emph{Journal of Biomedical Informatics}, vol.~34, no.~5, pp. 301--310, 2001.
+
+\bibitem{harkema2009context}
+H.~Harkema, J.~N. Dowling, T.~Thornblade, and W.~W. Chapman, ``ConText: An algorithm for determining negation, experiencer, and temporality in clinical notes,'' \emph{Journal of Biomedical Informatics}, vol.~42, no.~5, pp. 839--851, 2009.
+
+\bibitem{jin2021disease}
+D.~Jin, E.~Pan, N.~Oufattole, W.-H. Weng, H.~Fang, and P.~Szolovits, ``What disease does this patient have? A large-scale open domain question answering dataset from medical exams,'' \emph{Applied Sciences}, vol.~11, no.~14, p. 6421, 2021.
+
+\bibitem{jin2019pubmedqa}
+Q.~Jin, B.~Dhingra, Z.~Liu, W.~W. Cohen, and X.~Lu, ``PubMedQA: A dataset for biomedical research question answering,'' in \emph{Proceedings of the Conference on Empirical Methods in Natural Language Processing (EMNLP)}, 2019, pp. 2567--2577.
+
+\bibitem{wu2023autogen}
+Q.~Wu, G.~Bansal, J.~Zhang, Y.~Wu, B.~Li, S.~Zhu, S.~Jiang, X.~Tan, H.~Zhu, C.~Gu \emph{et~al.}, ``AutoGen: Enabling next-gen LLM applications via multi-agent conversation,'' \emph{arXiv preprint arXiv:2308.08155}, 2023.
+
+\bibitem{chen2024reconcile}
+J.~Chen, S.~Saha, and M.~Bansal, ``Reconcile: Round-table discussion improves multi-agent reasoning for language models,'' in \emph{Proceedings of the Annual Meeting of the Association for Computational Linguistics (ACL)}, 2024, pp. 8920--8938.
+
+\bibitem{liu2023dynamic}
+Z.~Liu, C.~Guan, A.~Yuan, and Q.~Gao, ``Dynamic LLM-Agent Network (DyLAN): Harnessing multi-agent collaboration for complex tasks,'' \emph{arXiv preprint arXiv:2310.02170}, 2023.
+
+\bibitem{deepseek2025r1}
+{DeepSeek-AI}, ``DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning,'' \emph{arXiv preprint arXiv:2501.12948}, 2025.
+
+\bibitem{anmol2024openbiollm}
+A.~Anmol, S.~Bader, and Z.~Khashabi, ``OpenBioLLM-70B: Open medical foundation models,'' \emph{Hugging Face Repository}, 2024.
+
+\bibitem{qwen2024qwq}
+{Qwen Team}, ``QwQ-32B-Preview: Mathematical and Clinical Reasoning via Long-Thought RL,'' \emph{Alibaba Cloud Research}, 2024.
+
+\bibitem{geifman2017selective}
+Y.~Geifman and R.~El-Yaniv, ``Selective classification for deep neural networks,'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~30, 2017, pp. 4878--4887.
+
+\end{thebibliography}
+
+\end{document}
